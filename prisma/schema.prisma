@@ -1,0 +1,726 @@
+// Bumayed — Prisma schema (implements DATABASE_SCHEMA.md v1, approved 2026-11-25)
+// Auth.js Account/Session tables are added in Phase 4 with the auth module.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  INDIVIDUAL
+  DEALER
+  MODERATOR
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+  PENDING_VERIFICATION
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  REJECTED
+  PAUSED
+  SOLD
+  EXPIRED
+  REMOVED
+}
+
+enum VehicleCategory {
+  CARS
+  MOTORCYCLES
+  BOATS
+}
+
+enum RegionalSpec {
+  GCC
+  AMERICAN
+  EUROPEAN
+  JAPANESE
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  ELECTRIC
+}
+
+enum Condition {
+  NEW
+  USED
+}
+
+enum DealerVerificationStatus {
+  UNVERIFIED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PromotionType {
+  FEATURED
+  PREMIUM
+  URGENT
+}
+
+enum PromotionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentPurpose {
+  PROMOTION
+  PACKAGE
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+enum NotificationType {
+  LISTING_SUBMITTED
+  LISTING_APPROVED
+  LISTING_REJECTED
+  LISTING_EXPIRY_SOON
+  LISTING_EXPIRED
+  PAYMENT_RESULT
+  PACKAGE_EXPIRY
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum VideoProvider {
+  YOUTUBE
+  INSTAGRAM
+  TIKTOK
+}
+
+enum FieldType {
+  SELECT
+  NUMBER
+  BOOLEAN
+  TEXT
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// ─── Identity & accounts ─────────────────────────────────────────────────────
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String?    @unique // citext semantics enforced by app-level lowercase
+  phone            String?    @unique @db.VarChar(20) // E.164
+  passwordHash     String?
+  role             Role       @default(INDIVIDUAL)
+  status           UserStatus @default(PENDING_VERIFICATION)
+  emailVerifiedAt  DateTime?
+  phoneVerifiedAt  DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  profile            UserProfile?
+  dealerProfile      DealerProfile?
+  listings           Listing[]
+  favorites          Favorite[]
+  notifications      Notification[]
+  notificationPrefs  NotificationPreference?
+  reportsFiled       Report[]             @relation("ReportReporter")
+  reportsResolved    Report[]             @relation("ReportResolver")
+  payments           Payment[]
+  subscriptions      Subscription[]
+  otpCodes           OtpCode[]
+  auditActions       AdminActivityLog[]
+  reviewedDocuments  VerificationDocument[]
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model UserProfile {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName     String
+  photoKey        String? // object-storage key, never a binary
+  emirateId       String?  @db.Uuid
+  emirate         Emirate? @relation(fields: [emirateId], references: [id])
+  cityId          String?  @db.Uuid
+  city            City?    @relation(fields: [cityId], references: [id])
+  whatsappNumber  String?  @db.VarChar(20)
+  showPhone       Boolean  @default(true)
+  preferredLocale String   @default("en") @db.VarChar(5)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+model DealerProfile {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  userId             String                    @unique @db.Uuid
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName       String
+  slug               String                    @unique
+  logoKey            String?
+  businessPhone      String                    @db.VarChar(20)
+  businessEmail      String?
+  whatsappNumber     String?                   @db.VarChar(20)
+  emirateId          String?                   @db.Uuid
+  emirate            Emirate?                  @relation(fields: [emirateId], references: [id])
+  cityId             String?                   @db.Uuid
+  city               City?                     @relation(fields: [cityId], references: [id])
+  address            String?
+  description        String?
+  workingHours       String?
+  verificationStatus DealerVerificationStatus  @default(UNVERIFIED)
+  verifiedAt         DateTime?
+  verificationNote   String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  documents VerificationDocument[]
+
+  @@map("dealer_profiles")
+}
+
+model VerificationDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  dealerId     String    @db.Uuid
+  dealer       DealerProfile @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  documentType String // trade_license, emirates_id, … (list TBC by client)
+  fileKey      String
+  status       DealerVerificationStatus @default(PENDING)
+  reviewedById String?   @db.Uuid
+  reviewedBy   User?     @relation(fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  note         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([dealerId])
+  @@map("verification_documents")
+}
+
+// Email verification + password reset (hashed, single-use, expiring)
+model VerificationToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String // email address
+  tokenHash  String
+  purpose    String // EMAIL_VERIFICATION | PASSWORD_RESET
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, purpose])
+  @@index([tokenHash])
+  @@map("verification_tokens")
+}
+
+// Scaffolded for mobile OTP — feature-flagged OFF (owner decision)
+model OtpCode {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String?   @db.Uuid
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone       String    @db.VarChar(20)
+  codeHash    String // never plaintext
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  resendCount Int       @default(0)
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@map("otp_codes")
+}
+
+// ─── Catalog ─────────────────────────────────────────────────────────────────
+
+model Category {
+  id        String          @id @default(uuid()) @db.Uuid
+  code      VehicleCategory @unique
+  nameEn    String
+  nameAr    String
+  slug      String          @unique
+  icon      String?
+  sortOrder Int             @default(0)
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  fields   CategoryField[]
+  makes    VehicleMake[]
+  listings Listing[]
+
+  @@map("categories")
+}
+
+// Admin-configurable per-category attributes (playbook §9.2)
+model CategoryField {
+  id          String    @id @default(uuid()) @db.Uuid
+  categoryId  String    @db.Uuid
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  key         String // mileage, engineCapacityCc, boatLengthFt, …
+  labelEn     String
+  labelAr     String
+  fieldType   FieldType
+  optionsJson Json? // validated option list for SELECT fields
+  isFilterable Boolean  @default(false)
+  isRequired  Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([categoryId, key])
+  @@map("category_fields")
+}
+
+model VehicleMake {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  nameEn     String
+  nameAr     String?
+  slug       String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  models   VehicleModel[]
+  listings Listing[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId, isActive])
+  @@map("vehicle_makes")
+}
+
+model VehicleModel {
+  id        String      @id @default(uuid()) @db.Uuid
+  makeId    String      @db.Uuid
+  make      VehicleMake @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  nameEn    String
+  nameAr    String?
+  slug      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  trims    VehicleTrim[]
+  listings Listing[]
+
+  @@unique([makeId, slug])
+  @@map("vehicle_models")
+}
+
+model VehicleTrim {
+  id        String       @id @default(uuid()) @db.Uuid
+  modelId   String       @db.Uuid
+  model     VehicleModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  nameEn    String
+  nameAr    String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  listings Listing[]
+
+  @@unique([modelId, nameEn])
+  @@map("vehicle_trims")
+}
+
+// ─── Locations ───────────────────────────────────────────────────────────────
+
+model Emirate {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(3) // AUH, DXB, SHJ, AJM, UAQ, RAK, FUJ
+  nameEn    String
+  nameAr    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cities         City[]
+  listings       Listing[]
+  userProfiles   UserProfile[]
+  dealerProfiles DealerProfile[]
+
+  @@map("emirates")
+}
+
+model City {
+  id        String   @id @default(uuid()) @db.Uuid
+  emirateId String   @db.Uuid
+  emirate   Emirate  @relation(fields: [emirateId], references: [id], onDelete: Cascade)
+  nameEn    String
+  nameAr    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  areas          Area[]
+  listings       Listing[]
+  userProfiles   UserProfile[]
+  dealerProfiles DealerProfile[]
+
+  @@unique([emirateId, nameEn])
+  @@map("cities")
+}
+
+model Area {
+  id        String   @id @default(uuid()) @db.Uuid
+  cityId    String   @db.Uuid
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  nameEn    String
+  nameAr    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listings Listing[]
+
+  @@unique([cityId, nameEn])
+  @@map("areas")
+}
+
+// ─── Listings ────────────────────────────────────────────────────────────────
+
+model Listing {
+  id           String          @id @default(uuid()) @db.Uuid
+  sellerId     String          @db.Uuid
+  seller       User            @relation(fields: [sellerId], references: [id])
+  categoryId   String          @db.Uuid
+  category     Category        @relation(fields: [categoryId], references: [id])
+  status       ListingStatus   @default(DRAFT)
+  title        String          @db.VarChar(120)
+  slug         String          @unique
+  description  String
+  priceAed     Int // AED, no decimals
+  negotiable   Boolean         @default(false)
+  makeId       String?         @db.Uuid
+  make         VehicleMake?    @relation(fields: [makeId], references: [id])
+  modelId      String?         @db.Uuid
+  model        VehicleModel?   @relation(fields: [modelId], references: [id])
+  trimId       String?         @db.Uuid
+  trim         VehicleTrim?    @relation(fields: [trimId], references: [id])
+  year         Int?
+  mileageKm    Int?
+  emirateId    String          @db.Uuid
+  emirate      Emirate         @relation(fields: [emirateId], references: [id])
+  cityId       String          @db.Uuid
+  city         City            @relation(fields: [cityId], references: [id])
+  areaId       String?         @db.Uuid
+  area         Area?           @relation(fields: [areaId], references: [id])
+  // Values keyed by CategoryField.key — Zod-validated per category (never a dump)
+  specs        Json            @default("{}")
+  contactPhone String?         @db.VarChar(20)
+  contactWhatsapp String?      @db.VarChar(20)
+  viewsCount   Int             @default(0)
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  rejectionReason String?
+  expiresAt    DateTime?
+  soldAt       DateTime?
+  removedAt    DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  images      ListingImage[]
+  video       ListingVideo?
+  favorites   Favorite[]
+  promotions  FeaturedPromotion[]
+  reports     Report[]
+
+  @@index([status, categoryId, createdAt(sort: Desc)])
+  @@index([categoryId, makeId, modelId])
+  @@index([emirateId, cityId])
+  @@index([priceAed])
+  @@index([year])
+  @@index([sellerId, status])
+  @@map("listings")
+}
+
+model ListingImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  listingId String   @db.Uuid
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  objectKey String
+  thumbKey  String?
+  width     Int?
+  height    Int?
+  sizeBytes Int?
+  mime      String?  @db.VarChar(50)
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listingId, sortOrder])
+  @@map("listing_images")
+}
+
+model ListingVideo {
+  id          String        @id @default(uuid()) @db.Uuid
+  listingId   String        @unique @db.Uuid // one video per listing (§9.4)
+  listing     Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  provider    VideoProvider
+  originalUrl String
+  embedUrl    String? // null → render external "Watch on" link
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("listing_videos")
+}
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String   @db.Uuid
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+  @@map("favorites")
+}
+
+// ─── Commercial ──────────────────────────────────────────────────────────────
+
+// Prices/durations in DB, never hardcoded (values DRAFT until client confirms)
+model PromotionPrice {
+  id           String        @id @default(uuid()) @db.Uuid
+  type         PromotionType @unique
+  priceAed     Int
+  durationDays Int
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("promotion_prices")
+}
+
+model FeaturedPromotion {
+  id        String          @id @default(uuid()) @db.Uuid
+  listingId String          @db.Uuid
+  listing   Listing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  type      PromotionType
+  status    PromotionStatus @default(ACTIVE)
+  startsAt  DateTime        @default(now())
+  endsAt    DateTime
+  paymentId String?         @db.Uuid
+  payment   Payment?        @relation(fields: [paymentId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([status, endsAt])
+  @@map("featured_promotions")
+}
+
+model Package {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String
+  nameAr              String?
+  priceAed            Int
+  validityDays        Int
+  monthlyListingQuota Int? // null = unlimited (owner rule: no limits)
+  featuredSlots       Int      @default(0)
+  isActive            Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("packages")
+}
+
+model Subscription {
+  id                     String   @id @default(uuid()) @db.Uuid
+  dealerId               String   @db.Uuid
+  dealer                 User     @relation(fields: [dealerId], references: [id])
+  packageId              String   @db.Uuid
+  package                Package  @relation(fields: [packageId], references: [id])
+  startsAt               DateTime @default(now())
+  endsAt                 DateTime
+  status                 PromotionStatus @default(ACTIVE)
+  listingsUsedThisPeriod Int      @default(0)
+  featuredSlotsUsed      Int      @default(0)
+  paymentId              String?  @db.Uuid
+  payment                Payment? @relation(fields: [paymentId], references: [id])
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([dealerId, status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @db.Uuid
+  user           User           @relation(fields: [userId], references: [id])
+  purpose        PaymentPurpose
+  amountAed      Int
+  currency       String         @default("AED") @db.VarChar(3)
+  provider       String? // telr | ni | stripe (client selects one)
+  providerRef    String?        @unique
+  status         PaymentStatus  @default(INITIATED)
+  idempotencyKey String         @unique
+  metadata       Json           @default("{}") // safe fields only — never card data
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  transactions      Transaction[]
+  featuredPromotion FeaturedPromotion[]
+  subscription      Subscription[]
+
+  @@index([userId, status])
+  @@map("payments")
+}
+
+// Append-only provider events — providerEventId unique = idempotent webhooks
+model Transaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @db.Uuid
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  providerEventId String   @unique
+  eventType       String
+  payload         Json
+  processedAt     DateTime @default(now())
+
+  @@map("transactions")
+}
+
+// ─── Notifications, reports, content ─────────────────────────────────────────
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel
+  type      NotificationType
+  titleEn   String
+  titleAr   String
+  bodyEn    String
+  bodyAr    String
+  data      Json?
+  readAt    DateTime?
+  dedupKey  String?             @unique // prevents duplicate sends on retried events
+  createdAt DateTime            @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toggles   Json     @default("{}") // per-type channel preferences; default all on
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+model Report {
+  id           String       @id @default(uuid()) @db.Uuid
+  listingId    String       @db.Uuid
+  listing      Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reporterId   String?      @db.Uuid // nullable → guest reports with contact
+  reporter     User?        @relation("ReportReporter", fields: [reporterId], references: [id])
+  guestContact String?
+  reason       String
+  details      String?
+  status       ReportStatus @default(OPEN)
+  resolvedById String?      @db.Uuid
+  resolvedBy   User?        @relation("ReportResolver", fields: [resolvedById], references: [id])
+  resolution   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([status, createdAt])
+  @@map("reports")
+}
+
+model Banner {
+  id        String    @id @default(uuid()) @db.Uuid
+  titleEn   String
+  titleAr   String?
+  imageKey  String
+  linkUrl   String?
+  position  String // home_hero, home_sidebar, …
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("banners")
+}
+
+model ContentPage {
+  id          String        @id @default(uuid()) @db.Uuid
+  slug        String        @unique // about, faq, terms, privacy, contact
+  titleEn     String
+  titleAr     String
+  bodyEn      String // sanitized rich text
+  bodyAr      String
+  status      ContentStatus @default(DRAFT) // DRAFT until client-approved
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("content_pages")
+}
+
+// ─── Administration ──────────────────────────────────────────────────────────
+
+model AdminActivityLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @db.Uuid
+  actor      User     @relation(fields: [actorId], references: [id])
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json? // safe before/after only — never passwords, OTPs, payment secrets
+  ip         String? @db.VarChar(45)
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@map("admin_activity_logs")
+}

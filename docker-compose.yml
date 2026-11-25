@@ -1,0 +1,24 @@
+# Local development PostgreSQL (playbook: hosting/DB accounts decided later).
+# Usage: docker compose up -d
+# Production will use a managed PostgreSQL instance (Phase 11).
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: bumayed-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bumayed
+      POSTGRES_PASSWORD: bumayed_dev_password # dev-only, never used in production
+      POSTGRES_DB: bumayed
+    ports:
+      - "5432:5432"
+    volumes:
+      - bumayed-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bumayed -d bumayed"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  bumayed-pgdata:
