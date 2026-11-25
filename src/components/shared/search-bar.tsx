@@ -36,17 +36,20 @@ export function SearchBar() {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex flex-col gap-2 rounded-lg bg-card p-2 shadow-lg sm:flex-row"
+      className="flex flex-col gap-2 rounded-lg bg-card p-2 text-card-foreground shadow-lg sm:flex-row"
     >
       <Input
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         placeholder={t("searchPlaceholder")}
         aria-label={t("search")}
-        className="h-11 flex-1 border-0 shadow-none focus-visible:ring-1"
+        className="h-11 flex-1 border-0 bg-transparent text-card-foreground shadow-none placeholder:text-muted-foreground focus-visible:ring-1"
       />
       <Select value={emirate} onValueChange={(v) => setEmirate(v ?? "")}>
-        <SelectTrigger className="h-11 sm:w-48" aria-label={t("allEmirates")}>
+        <SelectTrigger
+          className="h-11 bg-transparent text-card-foreground sm:w-48"
+          aria-label={t("allEmirates")}
+        >
           <SelectValue placeholder={t("allEmirates")}>
             {(v: string) =>
               v ? te(v as (typeof EMIRATE_CODES)[number]) : t("allEmirates")
