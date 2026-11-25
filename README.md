@@ -37,6 +37,15 @@ Health: `GET /api/health` · Search: `GET /api/listings?category=cars&…`
 
 > Host port **5433** is used so a local Windows PostgreSQL on 5432 does not clash.
 
+### DEV sample accounts (seed)
+
+| Email | Password | Role |
+|---|---|---|
+| `dealer.dev@bumayed.local` | `DevPassword123!` | DEALER (verified) |
+| `seller.dev@bumayed.local` | `DevPassword123!` | INDIVIDUAL |
+
+Never use these passwords in production. Email verification links print to the server console when `EMAIL_PROVIDER_API_KEY` is unset.
+
 ## Quality gates
 
 ```bash

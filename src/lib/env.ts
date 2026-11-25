@@ -19,6 +19,7 @@ const envSchema = z.object({
 
   // Phase 4 — auth & email
   AUTH_SECRET: z.string().min(32).optional(),
+  AUTH_URL: z.url().optional(),
   EMAIL_FROM: z.email().optional(),
   EMAIL_PROVIDER_API_KEY: z.string().optional(),
 

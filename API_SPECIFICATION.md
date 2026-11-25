@@ -63,11 +63,43 @@ Server-side search, filter, sort, pagination (playbook §7.3).
 
 ---
 
+## Auth (Phase 4)
+
+Auth.js handlers also serve `GET/POST /api/auth/*` (CSRF, session, callback).
+Custom JSON APIs below use the auth module services. Rate-limited by IP.
+
+### `POST /api/auth/register`
+Body: `{ displayName, accountType: individual|dealer, email?, phone?, password, businessName? }`  
+Rules: email **or** phone required (neither mandatory alone). Dealer requires `businessName`.  
+Response `200`: `{ ok: true, message }` (duplicate identifiers also return generic ok — no enumeration).  
+Errors: `400 VALIDATION` · `429 RATE_LIMITED`
+
+### `POST /api/auth/login`
+Body: `{ identifier, password }` (identifier = email or E.164 phone)  
+Response `200`: `{ ok: true }` (+ session cookie)  
+Errors: `401 INVALID_CREDENTIALS|EMAIL_NOT_VERIFIED|ACCOUNT_DISABLED` · `429 RATE_LIMITED`
+
+### `POST /api/auth/logout`
+Response `200`: `{ ok: true }` (clears session)
+
+### `POST /api/auth/forgot-password`
+Body: `{ email }` → always generic success message (no enumeration). Sends reset email when account exists.
+
+### `POST /api/auth/reset-password`
+Body: `{ email, token, password }` → `200 { ok: true }` or `400 INVALID_TOKEN`
+
+### `POST /api/auth/verify-email`
+Body: `{ email, token }` → activates email accounts. Also available via `/[locale]/auth/verify-email?email&token`.
+
+OTP: scaffolded (`FEATURE_OTP_ENABLED=false`). Do not expose OTP endpoints until enabled.
+
+---
+
 ## Planned (later phases)
 
 | Area | Phase | Endpoints (sketch) |
 |---|---|---|
-| Auth | 4 | `POST /api/auth/register\|login\|logout\|verify-email\|forgot\|reset` |
+| Auth | 4 | ✅ implemented above |
 | Seller listings | 5 | `POST/PATCH/DELETE /api/listings`, status actions, signed uploads |
 | Favorites | 5 | `GET/POST/DELETE /api/favorites` |
 | Reports | 8 | `POST /api/reports` |

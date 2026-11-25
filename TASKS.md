@@ -33,7 +33,7 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Fixed en route: Base UI select labels, nativeButton warnings, year grouping, SSR empty-value i18n crash
 - [x] **Approval gate: public UI sign-off** (approved 2026-11-25)
 
-## Phase 3 — Database & backend ⛔ awaiting owner approval
+## Phase 3 — Database & backend ✅ approved 2026-11-25
 - [x] Prisma 7 schema per `DATABASE_SCHEMA.md`; migration `20261125124501_init` from clean DB
 - [x] Listings module: service / repository / policies / mappers
 - [x] Listing lifecycle state machine + Vitest
@@ -42,15 +42,15 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Seeds: 7 emirates, cities, categories, fields, makes/models, DEV users/listings
 - [x] Vitest: lifecycle + query parse (8 tests)
 - [x] Public UI wired to PostgreSQL (mock fixtures deprecated)
-- [ ] **Approval gate: schema + API + listing workflow review**
+- [x] **Approval gate: schema + API + listing workflow review** (approved 2026-11-25)
 
-## Phase 4 — Auth & accounts
-- [ ] Register (email or mobile), login, logout, sessions
-- [ ] Email verification; password forgot/reset
-- [ ] Rate limiting on auth endpoints; no account-existence leakage
-- [ ] Individual profile; dealer profile + verification document upload
-- [ ] OTP module scaffolded, feature-flag OFF
-- [ ] Security tests per playbook §8
+## Phase 4 — Auth & accounts ⛔ awaiting owner approval
+- [x] Register (email or mobile), login, logout, JWT sessions (Auth.js)
+- [x] Email verification; password forgot/reset (hashed tokens)
+- [x] Rate limiting on auth endpoints; no account-existence leakage
+- [x] Individual profile on register; dealer profile created (UNVERIFIED) — document upload Phase 6
+- [x] OTP module scaffolded, feature-flag OFF
+- [x] Password + schema Vitest; smoke login/register
 - [ ] **Approval gate: auth workflows**
 
 ## Phase 5 — Listings & seller dashboard

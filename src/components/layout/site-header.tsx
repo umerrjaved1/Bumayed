@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -8,6 +9,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 export async function SiteHeader() {
   const t = await getTranslations("common");
   const tn = await getTranslations("nav");
+  const session = await auth();
 
   const links = [
     { href: "/cars", label: tn("cars") },
@@ -47,14 +49,34 @@ export async function SiteHeader() {
 
         <div className="ms-auto flex items-center gap-2">
           <LanguageSwitcher />
+          {session?.user ? (
+            <Button
+              variant="outline"
+              className="hidden sm:inline-flex"
+              render={<Link href="/dashboard" />}
+            >
+              {session.user.name ?? t("login")}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="hidden sm:inline-flex"
+              render={<Link href="/auth/login" />}
+            >
+              {t("login")}
+            </Button>
+          )}
           <Button
-            variant="outline"
-            className="hidden sm:inline-flex"
-            render={<Link href="/auth/login" />}
+            render={
+              <Link
+                href={
+                  session?.user
+                    ? "/dashboard/listings/new"
+                    : "/auth/register"
+                }
+              />
+            }
           >
-            {t("login")}
-          </Button>
-          <Button render={<Link href="/dashboard/listings/new" />}>
             <Plus className="size-4" aria-hidden />
             {t("postAd")}
           </Button>

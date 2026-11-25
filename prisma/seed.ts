@@ -490,7 +490,9 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
       email: "dealer.dev@bumayed.local",
       phone: "+971501112233",
       // DEV ONLY — bcrypt placeholder string, not a real usable password
-      passwordHash: "$dev$not-a-real-hash$dealer",
+      // DEV ONLY password: DevPassword123!
+      passwordHash:
+        "$2b$12$FbLIkgl4A4fDYSxB7fcVhucvXtS7HSI5HsAi.ON6Qo5M4p3p5TiUa",
       role: Role.DEALER,
       status: UserStatus.ACTIVE,
       emailVerifiedAt: new Date(),
@@ -525,7 +527,9 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
     create: {
       email: "seller.dev@bumayed.local",
       phone: "+971509998877",
-      passwordHash: "$dev$not-a-real-hash$seller",
+      // DEV ONLY password: DevPassword123!
+      passwordHash:
+        "$2b$12$FbLIkgl4A4fDYSxB7fcVhucvXtS7HSI5HsAi.ON6Qo5M4p3p5TiUa",
       role: Role.INDIVIDUAL,
       status: UserStatus.ACTIVE,
       emailVerifiedAt: new Date(),
