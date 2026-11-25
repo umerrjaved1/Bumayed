@@ -25,22 +25,29 @@ Pinned versions: see `package-lock.json`.
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in values (see file comments)
-npm run dev                  # http://localhost:3000 → redirects to /en
+cp .env.example .env          # DATABASE_URL for local Docker Postgres (port 5433)
+npm run db:up                 # docker compose up -d (PostgreSQL 17)
+npm run db:migrate            # prisma migrate dev
+npm run db:seed               # UAE reference + DEV sample listings
+npm run dev                   # http://localhost:3000 → redirects to /en
 ```
 
-Routes: `/en/...` (LTR) and `/ar/...` (RTL). Health check: `GET /api/health`.
+Routes: `/en/...` (LTR) and `/ar/...` (RTL).  
+Health: `GET /api/health` · Search: `GET /api/listings?category=cars&…`
+
+> Host port **5433** is used so a local Windows PostgreSQL on 5432 does not clash.
 
 ## Quality gates
 
 ```bash
 npm run typecheck    # TypeScript strict, no errors allowed
 npm run lint         # ESLint (next/core-web-vitals)
+npm run test         # Vitest unit/service tests
 npm run format       # Prettier (+ tailwind class sorting)
 npm run build        # production build must pass
 ```
 
-(Vitest unit tests and Playwright E2E arrive in Phases 3 and 5.)
+(Playwright E2E arrives in Phase 5.)
 
 ## Conventions
 

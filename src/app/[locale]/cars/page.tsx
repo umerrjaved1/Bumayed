@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CategoryResults } from "@/components/shared/category-results";
-import type { SearchParamsInput } from "@/lib/mock/search";
+import type { SearchParamsInput } from "@/modules/listings/types";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

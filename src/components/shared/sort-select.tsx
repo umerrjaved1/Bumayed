@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import type { ListingSort } from "@/lib/mock/search";
+import type { ListingSort } from "@/modules/listings/types";
 import {
   Select,
   SelectContent,

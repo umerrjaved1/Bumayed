@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import {
   getFeaturedListings,
   getLatestListings,
-  POPULAR_MAKES,
-} from "@/lib/mock/listings";
+  getMakesForCategory,
+} from "@/modules/listings/service";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage({
   params,
@@ -21,6 +23,12 @@ export default async function HomePage({
   setRequestLocale(locale);
   const t = await getTranslations("home");
   const tc = await getTranslations("categories");
+
+  const [featured, latest, popularMakes] = await Promise.all([
+    getFeaturedListings(6),
+    getLatestListings(6),
+    getMakesForCategory("cars"),
+  ]);
 
   const categories = [
     { key: "cars", href: "/cars", icon: Car },
@@ -69,14 +77,14 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Featured ads — isolated mock fixtures, replaced in Phase 3 */}
+      {/* Featured ads — from PostgreSQL (Phase 3) */}
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <h2 className="text-2xl font-semibold tracking-tight">
           {t("featuredAds")}
         </h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {getFeaturedListings().map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+          {featured.map((listing) => (
+            <ListingCard key={listing.slug} listing={listing} />
           ))}
         </div>
       </section>
@@ -88,7 +96,7 @@ export default async function HomePage({
             {t("popularMakes")}
           </h2>
           <div className="mt-6 flex flex-wrap gap-2">
-            {POPULAR_MAKES.map((make) => (
+            {popularMakes.map((make) => (
               <Badge
                 key={make}
                 variant="secondary"
@@ -108,8 +116,8 @@ export default async function HomePage({
           {t("latestAds")}
         </h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {getLatestListings().map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+          {latest.map((listing) => (
+            <ListingCard key={listing.slug} listing={listing} />
           ))}
         </div>
       </section>

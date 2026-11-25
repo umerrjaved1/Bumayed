@@ -11,7 +11,10 @@ import {
   Phone,
   Ship,
 } from "lucide-react";
-import { MOCK_LISTINGS, getListingById } from "@/lib/mock/listings";
+import {
+  getPublicListingBySlug,
+  getSimilarListings,
+} from "@/modules/listings/service";
 import { parseVideoUrl } from "@/lib/video";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,13 +28,15 @@ import { ListingCard } from "@/components/shared/listing-card";
 
 const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const listing = getListingById(id);
+  const listing = await getPublicListingBySlug(id);
   if (!listing) return {};
   return { title: listing.title };
 }
@@ -42,7 +47,7 @@ export default async function ListingDetailPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { id } = await params;
-  const listing = getListingById(id);
+  const listing = await getPublicListingBySlug(id);
   if (!listing) notFound();
 
   const t = await getTranslations("detail");
@@ -109,9 +114,7 @@ export default async function ListingDetailPage({
       : []),
   ];
 
-  const similar = MOCK_LISTINGS.filter(
-    (l) => l.category === listing.category && l.id !== listing.id,
-  ).slice(0, 3);
+  const similar = await getSimilarListings(listing.category, listing.slug, 3);
 
   const postedDate = new Intl.DateTimeFormat(
     activeLocale === "ar" ? "ar-AE" : "en-AE",
@@ -275,7 +278,7 @@ export default async function ListingDetailPage({
           <h2 className="text-2xl font-semibold tracking-tight">{t("similar")}</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {similar.map((l) => (
-              <ListingCard key={l.id} listing={l} />
+              <ListingCard key={l.slug} listing={l} />
             ))}
           </div>
         </section>

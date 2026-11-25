@@ -24,23 +24,24 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Shared components: header/footer, nav, language switcher, search bar, category cards, listing card, price display; shadcn primitives (buttons, inputs, select, dialog, sheet, skeleton, table, tabs, badges, pagination, toasts, tooltip, alert) for the rest
 - [x] **Approval gate: design system + responsive layouts demo** (approved 2026-11-25)
 
-## Phase 2 — Public marketplace UI ⛔ awaiting owner approval
+## Phase 2 — Public marketplace UI ✅ approved 2026-11-25
 - [x] Homepage (all §6.1 modules: hero/search, categories, emirate selector, featured, latest, popular makes, dealer promo, how-it-works, footer)
 - [x] `/cars` `/motorcycles` `/boats` results pages (sidebar filters desktop / drawer mobile, sort, pagination, URL params, no-results + loading skeletons; verified: gcc+price+sort query → correct 2 results)
 - [x] Listing detail page (§6.3: gallery placeholders, specs, description, seller panel w/ verification, tel:/wa.me links, share, report dialog (honest Phase-8 placeholder), YouTube/IG/TikTok video logic, similar listings)
 - [x] Content pages (About/FAQ/Terms/Privacy/Contact) — clearly marked draft copy
 - [x] Isolated, documented mock fixtures only (`src/lib/mock/`, marked for Phase 3 replacement)
 - [x] Fixed en route: Base UI select labels, nativeButton warnings, year grouping, SSR empty-value i18n crash
-- [ ] **Approval gate: public UI sign-off** (EN + AR browser-verified 2026-11-25)
+- [x] **Approval gate: public UI sign-off** (approved 2026-11-25)
 
-## Phase 3 — Database & backend
-- [ ] Prisma schema per `DATABASE_SCHEMA.md`; migrations from clean DB
-- [ ] Service/repository/policies layer per module
-- [ ] Listing lifecycle state machine + tests
-- [ ] Server-side search/filter/sort/pagination + indexes
-- [ ] `API_SPECIFICATION.md` complete
-- [ ] Seeds: 7 emirates, cities, categories, fields, makes/models, dev users/listings
-- [ ] Vitest coverage for core services
+## Phase 3 — Database & backend ⛔ awaiting owner approval
+- [x] Prisma 7 schema per `DATABASE_SCHEMA.md`; migration `20261125124501_init` from clean DB
+- [x] Listings module: service / repository / policies / mappers
+- [x] Listing lifecycle state machine + Vitest
+- [x] Server-side search/filter/sort/pagination + indexes (Prisma where + orderBy)
+- [x] `API_SPECIFICATION.md` (public listing read APIs; later phases sketched)
+- [x] Seeds: 7 emirates, cities, categories, fields, makes/models, DEV users/listings
+- [x] Vitest: lifecycle + query parse (8 tests)
+- [x] Public UI wired to PostgreSQL (mock fixtures deprecated)
 - [ ] **Approval gate: schema + API + listing workflow review**
 
 ## Phase 4 — Auth & accounts

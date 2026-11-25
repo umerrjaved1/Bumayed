@@ -1,11 +1,13 @@
 import { getTranslations } from "next-intl/server";
-import { getMakesForCategory, type VehicleCategoryCode } from "@/lib/mock/listings";
+import { buildQueryString, parseListingQuery } from "@/modules/listings/query";
 import {
-  buildQueryString,
-  parseListingQuery,
-  searchMockListings,
-  type SearchParamsInput,
-} from "@/lib/mock/search";
+  getMakesForCategory,
+  searchPublicListings,
+} from "@/modules/listings/service";
+import type {
+  SearchParamsInput,
+  VehicleCategoryCode,
+} from "@/modules/listings/types";
 import { FilterForm } from "@/components/shared/filters/filter-form";
 import { MobileFilterDrawer } from "@/components/shared/filters/mobile-filter-drawer";
 import { SortSelect } from "@/components/shared/sort-select";
@@ -33,9 +35,12 @@ export async function CategoryResults({
   const tr = await getTranslations("results");
 
   const query = parseListingQuery(searchParams, category);
-  const { items, total, page, totalPages } = searchMockListings(query);
-  const makes = getMakesForCategory(category);
+  const [{ items, total, page, totalPages }, makes] = await Promise.all([
+    searchPublicListings(query),
+    getMakesForCategory(category),
+  ]);
   const flat = flatten(searchParams);
+  const basePath = `/${category}`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -47,7 +52,6 @@ export async function CategoryResults({
       </header>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[280px_1fr]">
-        {/* Desktop sidebar filters */}
         <aside className="hidden lg:block">
           <div className="sticky top-20 rounded-lg border bg-card p-4">
             <h2 className="mb-4 font-semibold">{tr("filtersTitle")}</h2>
@@ -56,9 +60,13 @@ export async function CategoryResults({
         </aside>
 
         <div>
-          <div className="flex items-center justify-between gap-3">
-            <MobileFilterDrawer category={category} makes={makes} values={query} />
-            <p className="text-sm text-muted-foreground" aria-live="polite">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <MobileFilterDrawer
+              category={category}
+              makes={makes}
+              values={query}
+            />
+            <p className="text-sm text-muted-foreground">
               {tr("count", { count: total })}
             </p>
             <SortSelect value={query.sort} currentParams={flat} />
@@ -76,7 +84,7 @@ export async function CategoryResults({
           ) : (
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard key={listing.slug} listing={listing} />
               ))}
             </div>
           )}
@@ -85,9 +93,7 @@ export async function CategoryResults({
             page={page}
             totalPages={totalPages}
             hrefForPage={(p) =>
-              `/${category}${buildQueryString(searchParams, {
-                page: p === 1 ? undefined : p,
-              })}`
+              `${basePath}${buildQueryString(flat, { page: p })}`
             }
           />
         </div>

@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import type { ListingQuery } from "@/lib/mock/search";
-import type { VehicleCategoryCode } from "@/lib/mock/listings";
+import type { ListingQuery, VehicleCategoryCode } from "@/modules/listings/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

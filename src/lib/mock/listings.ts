@@ -1,7 +1,8 @@
 /**
- * ⚠️ ISOLATED MOCK FIXTURES — VISUAL PROTOTYPING ONLY (playbook rule 9).
- * Used solely to demo the public UI during Phase 2. Replaced by the real
- * listings API in Phase 3. Never wire into production paths.
+ * ⚠️ DEPRECATED — Phase 2 visual fixtures only (playbook rule 9).
+ * Public pages now use `src/modules/listings` + PostgreSQL.
+ * Kept temporarily for reference; do not import from app routes.
+ * Delete once Phase 3 gate is approved.
  */
 
 export type EmirateCode = "AUH" | "DXB" | "SHJ" | "AJM" | "UAQ" | "RAK" | "FUJ";

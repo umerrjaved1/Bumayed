@@ -6,11 +6,11 @@ import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PriceDisplay } from "@/components/shared/price-display";
-import type { MockListing } from "@/lib/mock/listings";
+import type { ListingPublicDto } from "@/modules/listings/types";
 
 const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
 
-export function ListingCard({ listing }: { listing: MockListing }) {
+export function ListingCard({ listing }: { listing: ListingPublicDto }) {
   const t = useTranslations("listing");
   const te = useTranslations("emirates");
   const locale = useLocale();

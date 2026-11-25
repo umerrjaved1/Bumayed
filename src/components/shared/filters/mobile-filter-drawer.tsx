@@ -12,8 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { FilterForm } from "./filter-form";
-import type { ListingQuery } from "@/lib/mock/search";
-import type { VehicleCategoryCode } from "@/lib/mock/listings";
+import type { ListingQuery, VehicleCategoryCode } from "@/modules/listings/types";
 
 /** Mobile filters live in a drawer (playbook §6.2); desktop uses the sidebar. */
 export function MobileFilterDrawer(props: {
