@@ -47,7 +47,11 @@ export function SearchBar() {
       />
       <Select value={emirate} onValueChange={(v) => setEmirate(v ?? "")}>
         <SelectTrigger className="h-11 sm:w-48" aria-label={t("allEmirates")}>
-          <SelectValue placeholder={t("allEmirates")} />
+          <SelectValue placeholder={t("allEmirates")}>
+            {(v: string) =>
+              v ? te(v as (typeof EMIRATE_CODES)[number]) : t("allEmirates")
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {EMIRATE_CODES.map((code) => (

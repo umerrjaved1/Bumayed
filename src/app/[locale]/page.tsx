@@ -4,7 +4,13 @@ import { SearchBar } from "@/components/shared/search-bar";
 import { CategoryCard } from "@/components/shared/category-card";
 import { ListingCard } from "@/components/shared/listing-card";
 import { Button } from "@/components/ui/button";
-import { MOCK_LISTINGS } from "@/lib/mock/listings";
+import {
+  getFeaturedListings,
+  getLatestListings,
+  POPULAR_MAKES,
+} from "@/lib/mock/listings";
+import { Link } from "@/i18n/navigation";
+import { Badge } from "@/components/ui/badge";
 
 export default async function HomePage({
   params,
@@ -63,13 +69,46 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Featured ads — isolated mock fixtures, replaced in Phase 2/3 */}
+      {/* Featured ads — isolated mock fixtures, replaced in Phase 3 */}
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <h2 className="text-2xl font-semibold tracking-tight">
           {t("featuredAds")}
         </h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MOCK_LISTINGS.map((listing) => (
+          {getFeaturedListings().map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      </section>
+
+      {/* Popular makes */}
+      <section className="border-t bg-muted/50">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {t("popularMakes")}
+          </h2>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {POPULAR_MAKES.map((make) => (
+              <Badge
+                key={make}
+                variant="secondary"
+                className="px-4 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                render={<Link href={`/cars?make=${encodeURIComponent(make)}`} />}
+              >
+                {make}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Latest ads */}
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {t("latestAds")}
+        </h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {getLatestListings().map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}
         </div>

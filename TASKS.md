@@ -22,15 +22,16 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Localized error + not-found pages; app shell (sticky header, footer, mobile drawer nav)
 - [x] `DESIGN_SYSTEM.md`: colors, EN/AR typography (Inter + Noto Sans Arabic), spacing, radii, elevation, breakpoints, RTL rules
 - [x] Shared components: header/footer, nav, language switcher, search bar, category cards, listing card, price display; shadcn primitives (buttons, inputs, select, dialog, sheet, skeleton, table, tabs, badges, pagination, toasts, tooltip, alert) for the rest
-- [ ] **Approval gate: design system + responsive layouts demo** (EN + AR screenshots shown 2026-11-25)
+- [x] **Approval gate: design system + responsive layouts demo** (approved 2026-11-25)
 
-## Phase 2 — Public marketplace UI
-- [ ] Homepage (all §6.1 modules)
-- [ ] `/cars` `/motorcycles` `/boats` results pages (filters sidebar/drawer, sort, pagination, URL params, no-results/loading/error)
-- [ ] Listing detail page (§6.3)
-- [ ] Content page layouts (About/FAQ/Terms/Privacy/Contact) — draft copy
-- [ ] Isolated, documented mock fixtures only (no fake "real" data)
-- [ ] **Approval gate: public UI sign-off**
+## Phase 2 — Public marketplace UI ⛔ awaiting owner approval
+- [x] Homepage (all §6.1 modules: hero/search, categories, emirate selector, featured, latest, popular makes, dealer promo, how-it-works, footer)
+- [x] `/cars` `/motorcycles` `/boats` results pages (sidebar filters desktop / drawer mobile, sort, pagination, URL params, no-results + loading skeletons; verified: gcc+price+sort query → correct 2 results)
+- [x] Listing detail page (§6.3: gallery placeholders, specs, description, seller panel w/ verification, tel:/wa.me links, share, report dialog (honest Phase-8 placeholder), YouTube/IG/TikTok video logic, similar listings)
+- [x] Content pages (About/FAQ/Terms/Privacy/Contact) — clearly marked draft copy
+- [x] Isolated, documented mock fixtures only (`src/lib/mock/`, marked for Phase 3 replacement)
+- [x] Fixed en route: Base UI select labels, nativeButton warnings, year grouping, SSR empty-value i18n crash
+- [ ] **Approval gate: public UI sign-off** (EN + AR browser-verified 2026-11-25)
 
 ## Phase 3 — Database & backend
 - [ ] Prisma schema per `DATABASE_SCHEMA.md`; migrations from clean DB

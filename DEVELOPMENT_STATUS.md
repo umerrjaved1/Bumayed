@@ -1,7 +1,7 @@
 # DEVELOPMENT_STATUS.md — Bumayed
 
 **Last updated:** 2026-11-25
-**Current phase:** Phase 1 — complete, **awaiting owner approval gate**
+**Current phase:** Phase 2 — complete, **awaiting owner approval gate**
 
 ## Completed
 - Phase 0 deliverables + ✅ owner approval (2026-11-25)
@@ -19,7 +19,30 @@
 - Mock fixtures isolated in `src/lib/mock/` (clearly marked, removed when APIs land)
 
 ## In progress
-- ⛔ **Approval gate:** owner review of design system + EN/AR responsive layouts
+- ⛔ **Approval gate:** owner review of public marketplace UI (Phase 2)
+
+## Phase 2 completed (2026-11-25)
+- Homepage completed: latest ads, popular makes (deep links to filtered `/cars`)
+- Category results pages `/cars` `/motorcycles` `/boats`:
+  - Filter sidebar (desktop) + Sheet drawer (mobile), 15+ filters incl.
+    category-specific (transmission/fuel/regionalSpec, motoType, boatType)
+  - Filters/sort/pagination all in URL query params (bookmarkable)
+  - Result count w/ ICU plurals (EN + AR), empty state, loading skeletons
+  - Mock search service mirrors Phase 3 API contract (server-side filter/sort/paginate)
+- Listing detail `/listings/[id]`: gallery placeholders, full spec rows,
+  seller panel (verified badge, member since, tel:/wa.me), share (Web Share +
+  clipboard), report dialog (honest Phase-8 placeholder toast, no fake success),
+  social video (YouTube/Instagram embed, TikTok external-link fallback), similar listings
+- Content pages About/FAQ(accordion)/Terms/Privacy/Contact w/ draft-notice banner
+- Fixes: Base UI `Select.Value` localized labels, `nativeButton` warnings,
+  year number grouping, SSR empty-value i18n crash, duplicate city/emirate display
+- 14 realistic UAE mock listings across all 3 categories (isolated in `src/lib/mock/`)
+
+## Validation (Phase 2)
+- `typecheck` ✓ · `lint` ✓ · `build` ✓ (21/21 pages, 0 warnings)
+- Browser-verified: `/en/cars?regionalSpec=gcc&priceMax=300000&sort=priceAsc`
+  → exactly 2 correct results ✓ · `/ar/cars` full RTL + Arabic plurals ✓ ·
+  listing detail EN ✓ · dev overlay 0 issues ✓
 
 ## Blocked / decisions needed
 1. Q-1 payment gateway selection (blocker for Phase 7 only — not now).
@@ -27,10 +50,5 @@
 3. Q-6 legal copy (terms/privacy/prohibited listings) — launch blocker.
 
 ## Next step (smallest approved task after gate)
-Phase 2 §6.1/6.2: category/search results pages (`/cars`, `/motorcycles`,
-`/boats`) with URL-param filters, sort, pagination, loading/empty/error states.
-
-## Validation this session
-- `npm run typecheck` ✓ · `npm run lint` ✓ · `npm run build` ✓ (0 errors/warnings)
-- `/api/health` 200 ✓ · `/en` rendered ✓ · `/ar` rendered with correct RTL mirroring ✓
-  (browser-verified screenshots)
+Phase 3 §7.1: Prisma schema per `DATABASE_SCHEMA.md` + migrations + seeds
+(requires DATABASE_URL — local PostgreSQL or Docker; owner to confirm).
