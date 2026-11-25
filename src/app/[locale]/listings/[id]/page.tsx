@@ -178,7 +178,7 @@ export default async function ListingDetailPage({
             <div className="flex items-center gap-2">
               <FavoriteButton listingId={listing.id} />
               <ShareButton title={listing.title} />
-              <ReportDialog />
+              <ReportDialog listingId={listing.id} />
             </div>
           </div>
 

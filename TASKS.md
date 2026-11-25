@@ -63,12 +63,12 @@ Scope changes must be recorded here and approved before implementation.
 - [ ] **Approval gate: seller journey**
 
 ## Phase 6 — Dealer & admin
-- [ ] Dealer dashboard (verification, package, slots, stats)
-- [ ] Admin dashboard counts
-- [ ] Users / dealers / listings / reports admin modules
-- [ ] Catalog, locations, commercial, content admin modules
-- [ ] Admin roles (Super Admin / Moderator) + audit log
-- [ ] Permission tests: authorized + unauthorized for every capability
+- [x] Dealer dashboard (verification, package, slots, stats)
+- [x] Admin dashboard counts
+- [x] Users / dealers / listings / reports admin modules
+- [x] Catalog, locations, commercial, content admin modules
+- [x] Admin roles (Super Admin / Moderator) + audit log
+- [x] Permission tests: authorized + unauthorized for every capability
 - [ ] **Approval gate: admin & dealer workflows**
 
 ## Phase 7 — Promotions, packages, payments

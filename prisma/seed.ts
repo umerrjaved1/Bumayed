@@ -544,6 +544,50 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: "admin.dev@bumayed.local" },
+    update: { role: Role.SUPER_ADMIN, status: UserStatus.ACTIVE },
+    create: {
+      email: "admin.dev@bumayed.local",
+      phone: "+971500000001",
+      // DEV ONLY password: DevPassword123!
+      passwordHash:
+        "$2b$12$FbLIkgl4A4fDYSxB7fcVhucvXtS7HSI5HsAi.ON6Qo5M4p3p5TiUa",
+      role: Role.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+      profile: {
+        create: {
+          displayName: "Super Admin",
+          emirateId: dxb.id,
+          cityId: dubaiCity.id,
+        },
+      },
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "moderator.dev@bumayed.local" },
+    update: { role: Role.MODERATOR, status: UserStatus.ACTIVE },
+    create: {
+      email: "moderator.dev@bumayed.local",
+      phone: "+971500000002",
+      // DEV ONLY password: DevPassword123!
+      passwordHash:
+        "$2b$12$FbLIkgl4A4fDYSxB7fcVhucvXtS7HSI5HsAi.ON6Qo5M4p3p5TiUa",
+      role: Role.MODERATOR,
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+      profile: {
+        create: {
+          displayName: "Moderator Dev",
+          emirateId: dxb.id,
+          cityId: dubaiCity.id,
+        },
+      },
+    },
+  });
+
   const patrol = await prisma.vehicleModel.findFirstOrThrow({
     where: { makeId: catalog.nissan.id, slug: "patrol" },
     include: { trims: true },
@@ -821,9 +865,50 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
     }
   }
 
+  // One pending listing for Phase 6 moderation queue
+  const pendingSlug = "pending-toyota-camry-2021-moderation";
+  const existingPending = await prisma.listing.findUnique({
+    where: { slug: pendingSlug },
+  });
+  if (!existingPending) {
+    const camry = await prisma.vehicleModel.findFirst({
+      where: { makeId: catalog.toyota.id, slug: "camry" },
+    });
+    await prisma.listing.create({
+      data: {
+        sellerId: individual.id,
+        categoryId: catalog.cars.id,
+        status: ListingStatus.PENDING,
+        title: "Toyota Camry 2021 — pending review",
+        slug: pendingSlug,
+        description:
+          "DEV SAMPLE pending listing for moderation queue testing.",
+        priceAed: 65000,
+        makeId: catalog.toyota.id,
+        modelId: camry?.id,
+        year: 2021,
+        mileageKm: 48000,
+        emirateId: auh.id,
+        cityId: abuDhabiCity.id,
+        specs: {
+          regionalSpec: "GCC",
+          bodyType: "Sedan",
+          transmission: "AUTOMATIC",
+          fuelType: "PETROL",
+          condition: "USED",
+        },
+        contactPhone: "+971509998877",
+        submittedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
+
   console.log("Seeded DEV sample accounts:");
-  console.log("  dealer.dev@bumayed.local  (role: DEALER) — DEV ONLY");
-  console.log("  seller.dev@bumayed.local  (role: INDIVIDUAL) — DEV ONLY");
+  console.log("  admin.dev@bumayed.local     (role: SUPER_ADMIN) — DEV ONLY");
+  console.log("  moderator.dev@bumayed.local (role: MODERATOR) — DEV ONLY");
+  console.log("  dealer.dev@bumayed.local    (role: DEALER) — DEV ONLY");
+  console.log("  seller.dev@bumayed.local    (role: INDIVIDUAL) — DEV ONLY");
 }
 
 async function main() {

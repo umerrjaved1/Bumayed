@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -25,20 +26,48 @@ import {
 
 const REASONS = ["fraud", "wrongCategory", "duplicate", "prohibited", "other"] as const;
 
-export function ReportDialog() {
+export function ReportDialog({
+  listingId,
+  requireGuestContact = false,
+}: {
+  listingId: string;
+  requireGuestContact?: boolean;
+}) {
   const t = useTranslations("detail");
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
+  const [guestContact, setGuestContact] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Honest placeholder: the report backend ships in Phase 8 (moderation).
-    // No fake success state — the user is told exactly what happened.
-    toast.info(t("reportDemo"));
-    setOpen(false);
-    setReason("");
-    setDetails("");
+    if (!reason) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId,
+          reason,
+          details: details.trim() || undefined,
+          guestContact: guestContact.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        toast.error(body?.error?.message ?? t("reportError"));
+        return;
+      }
+      toast.success(t("reportOk"));
+      setOpen(false);
+      setReason("");
+      setDetails("");
+      setGuestContact("");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -70,6 +99,17 @@ export function ReportDialog() {
               </SelectContent>
             </Select>
           </div>
+          {requireGuestContact ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="report-contact">{t("reportContact")}</Label>
+              <Input
+                id="report-contact"
+                value={guestContact}
+                onChange={(e) => setGuestContact(e.target.value)}
+                required
+              />
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="report-details">{t("reportDetails")}</Label>
             <Textarea
@@ -79,7 +119,11 @@ export function ReportDialog() {
               rows={3}
             />
           </div>
-          <Button type="submit" disabled={!reason} className="w-full">
+          <Button
+            type="submit"
+            disabled={!reason || submitting}
+            className="w-full"
+          >
             {t("reportSubmit")}
           </Button>
         </form>

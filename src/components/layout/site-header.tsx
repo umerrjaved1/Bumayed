@@ -53,7 +53,18 @@ export async function SiteHeader() {
             <Button
               variant="outline"
               className="hidden sm:inline-flex"
-              render={<Link href="/dashboard" />}
+              render={
+                <Link
+                  href={
+                    session.user.role === "SUPER_ADMIN" ||
+                    session.user.role === "MODERATOR"
+                      ? "/admin"
+                      : session.user.role === "DEALER"
+                        ? "/dashboard/dealer"
+                        : "/dashboard"
+                  }
+                />
+              }
             >
               {session.user.name ?? t("login")}
             </Button>

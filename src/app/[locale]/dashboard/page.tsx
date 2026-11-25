@@ -82,6 +82,31 @@ export default async function DashboardPage({
             </Button>
           </CardContent>
         </Card>
+        {session.user.role === "DEALER" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("dealerNav")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" render={<Link href="/dashboard/dealer" />}>
+                {t("dealerNav")}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+        {session.user.role === "MODERATOR" ||
+        session.user.role === "SUPER_ADMIN" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("adminNav")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" render={<Link href="/admin" />}>
+                {t("adminNav")}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <div className="mt-8">
