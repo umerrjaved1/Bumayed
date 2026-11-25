@@ -1,0 +1,91 @@
+{
+  "common": {
+    "brand": "Bumayed",
+    "tagline": "UAE Motors Marketplace",
+    "postAd": "Post an Ad",
+    "login": "Log in",
+    "register": "Register",
+    "search": "Search",
+    "searchPlaceholder": "Search by make, model or keyword…",
+    "allEmirates": "All Emirates",
+    "viewAll": "View all",
+    "loading": "Loading…",
+    "error": "Something went wrong. Please try again.",
+    "retry": "Retry"
+  },
+  "nav": {
+    "home": "Home",
+    "cars": "Cars",
+    "motorcycles": "Motorcycles",
+    "boats": "Boats",
+    "dealers": "Dealers",
+    "about": "About",
+    "faq": "FAQ",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "contact": "Contact"
+  },
+  "home": {
+    "heroTitle": "Find your next car, motorcycle or boat in the UAE",
+    "heroSubtitle": "Browse thousands of verified listings across all seven emirates.",
+    "browseCategories": "Browse categories",
+    "featuredAds": "Featured ads",
+    "latestAds": "Latest ads",
+    "popularMakes": "Popular makes",
+    "dealerPromoTitle": "Are you a dealer?",
+    "dealerPromoBody": "Showcase your inventory to buyers across the UAE with a Bumayed dealer package.",
+    "dealerPromoCta": "Explore dealer packages",
+    "howItWorks": "How it works",
+    "howStep1Title": "Post your ad",
+    "howStep1Body": "Create your listing in minutes with photos and details.",
+    "howStep2Title": "Buyers contact you",
+    "howStep2Body": "Interested buyers reach you directly by phone or WhatsApp.",
+    "howStep3Title": "Sell with confidence",
+    "howStep3Body": "Meet the buyer, close the deal and mark your ad as sold."
+  },
+  "categories": {
+    "cars": "Cars",
+    "motorcycles": "Motorcycles",
+    "boats": "Boats",
+    "carsDescription": "Sedans, SUVs, coupes and more from sellers across the UAE.",
+    "motorcyclesDescription": "Sport, cruiser, touring and adventure bikes.",
+    "boatsDescription": "Boats, yachts and jet skis for every budget."
+  },
+  "listing": {
+    "aed": "AED",
+    "km": "km",
+    "year": "Year",
+    "mileage": "Mileage",
+    "featured": "Featured",
+    "urgent": "Urgent",
+    "negotiable": "Negotiable",
+    "photoPlaceholder": "Photo coming soon"
+  },
+  "footer": {
+    "aboutBlurb": "Bumayed is the UAE marketplace for cars, motorcycles and boats. Buy and sell directly, in English and Arabic.",
+    "quickLinks": "Quick links",
+    "categories": "Categories",
+    "legal": "Legal",
+    "copyright": "© {year} Bumayed. All rights reserved."
+  },
+  "emirates": {
+    "AUH": "Abu Dhabi",
+    "DXB": "Dubai",
+    "SHJ": "Sharjah",
+    "AJM": "Ajman",
+    "UAQ": "Umm Al Quwain",
+    "RAK": "Ras Al Khaimah",
+    "FUJ": "Fujairah"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for does not exist or has been moved.",
+    "backHome": "Back to homepage",
+    "errorTitle": "Something went wrong",
+    "errorBody": "An unexpected error occurred. Please try again."
+  },
+  "meta": {
+    "homeTitle": "Bumayed — UAE Motors Marketplace",
+    "homeDescription": "Buy and sell cars, motorcycles and boats in the UAE. Bilingual, in English and Arabic."
+  }
+}
