@@ -1,28 +1,26 @@
 # DEVELOPMENT_STATUS.md — Bumayed
 
 **Last updated:** 2026-11-25
-**Current phase:** Phase 4 — complete, **awaiting owner approval gate**
+**Current phase:** Phase 5 — complete, **awaiting owner approval gate**
 
 ## Completed
-- Phase 0–3 ✅ approved
-- Phase 4 authentication & accounts:
-  - Auth.js (next-auth v5) Credentials + JWT sessions
-  - Register (email **or** phone; individual/dealer), login, logout
-  - Email verification + password forgot/reset (hashed single-use tokens)
-  - bcrypt password hashing · IP rate limits (`AuthRateLimit`)
-  - OTP scaffolded, `FEATURE_OTP_ENABLED=false`
-  - Auth UI EN/AR: login, register, forgot, reset, verify
-  - Protected `/dashboard` (+ listing stub)
-  - Header shows session; APIs documented in `API_SPECIFICATION.md`
-  - Vitest: 14 tests · typecheck/lint/build ✓
-  - Smoke: login dealer DEV → 200; register → 200
+- Phase 0–4 ✅ approved
+- Phase 5 seller listings:
+  - 8-step create wizard (category → specs → details → price → photos → video → preview → submit)
+  - Local image upload adapter (`public/uploads`, MIME sniffing, size limits) until R2/S3
+  - YouTube/Instagram/TikTok video URL validation
+  - Seller dashboard listing tabs + lifecycle actions (submit/pause/reactivate/renew/sold/remove)
+  - Favorites API + button on listing detail + favorites page
+  - Ownership enforced server-side on all seller routes
+  - typecheck / lint / build ✓ · Vitest 15 tests
 
 ## In progress
-- ⛔ **Approval gate:** owner review of auth & account workflows
+- ⛔ **Approval gate:** owner review of seller journey
 
 ## Next step (after gate)
-Phase 5 — listing creation wizard + seller dashboard actions.
+Phase 6 — dealer dashboard + admin moderation panel.
 
-## DEV login
-- `dealer.dev@bumayed.local` / `DevPassword123!`
-- `seller.dev@bumayed.local` / `DevPassword123!`
+## How to try
+1. Login: `dealer.dev@bumayed.local` / `DevPassword123!`
+2. Open `/en/dashboard/listings/new` and complete the wizard
+3. Submitted ads stay **PENDING** until Phase 6 moderation

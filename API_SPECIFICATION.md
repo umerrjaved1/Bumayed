@@ -95,6 +95,31 @@ OTP: scaffolded (`FEATURE_OTP_ENABLED=false`). Do not expose OTP endpoints until
 
 ---
 
+## Seller listings (Phase 5) — authenticated
+
+### `GET /api/seller/listings?status=`
+Own listings (optional status filter). Response `{ items: ListingPublicDto[] }`.
+
+### `POST /api/seller/listings`
+Create draft or submit (`submit: true` → PENDING). Body: listing write schema.
+
+### `GET/PATCH /api/seller/listings/[id]`
+Get/update own listing. PATCH with `{ action }` for lifecycle:
+`submit|pause|reactivate|renew|sold|remove`.
+
+### `POST /api/seller/listings/[id]/images` (multipart `file`)
+Local storage under `/uploads/…` until R2/S3 credentials. MIME sniffed server-side.
+
+### `DELETE /api/seller/listings/[id]/images?imageId=`
+
+### `GET /api/seller/catalog?category=` / `?emirate=`
+Wizard make/model/trim and city lists.
+
+### Favorites
+`GET/POST /api/favorites` · `DELETE /api/favorites?listingId=`
+
+---
+
 ## Planned (later phases)
 
 | Area | Phase | Endpoints (sketch) |

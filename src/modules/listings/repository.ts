@@ -142,6 +142,13 @@ export async function findActiveBySlug(slug: string) {
   });
 }
 
+export async function findBySlug(slug: string) {
+  return prisma.listing.findFirst({
+    where: { slug },
+    include: publicInclude,
+  });
+}
+
 export async function findFeatured(limit = 6) {
   return prisma.listing.findMany({
     where: {
@@ -210,4 +217,130 @@ export async function updateListingStatus(
   data: Prisma.ListingUpdateInput,
 ) {
   return prisma.listing.update({ where: { id }, data, include: publicInclude });
+}
+
+export async function findSellerListings(sellerId: string, status?: ListingStatus) {
+  return prisma.listing.findMany({
+    where: {
+      sellerId,
+      ...(status ? { status } : { status: { not: ListingStatus.REMOVED } }),
+    },
+    include: publicInclude,
+    orderBy: [{ updatedAt: "desc" }],
+  });
+}
+
+export async function createListing(data: Prisma.ListingCreateInput) {
+  return prisma.listing.create({ data, include: publicInclude });
+}
+
+export async function updateListing(id: string, data: Prisma.ListingUpdateInput) {
+  return prisma.listing.update({ where: { id }, data, include: publicInclude });
+}
+
+export async function findCategoryByCode(code: VehicleCategoryCode) {
+  return prisma.category.findUnique({
+    where: { code: CATEGORY_CODE_TO_ENUM[code] },
+  });
+}
+
+export async function findEmirateByCode(code: string) {
+  return prisma.emirate.findUnique({ where: { code } });
+}
+
+export async function listCitiesByEmirate(emirateId: string) {
+  return prisma.city.findMany({
+    where: { emirateId },
+    orderBy: { nameEn: "asc" },
+  });
+}
+
+export async function listMakesWithModels(category: VehicleCategoryCode) {
+  return prisma.vehicleMake.findMany({
+    where: {
+      isActive: true,
+      category: { code: CATEGORY_CODE_TO_ENUM[category] },
+    },
+    include: {
+      models: {
+        include: { trims: true },
+        orderBy: { nameEn: "asc" },
+      },
+    },
+    orderBy: { nameEn: "asc" },
+  });
+}
+
+export async function addListingImage(data: {
+  listingId: string;
+  objectKey: string;
+  mime: string;
+  sizeBytes: number;
+  sortOrder: number;
+  isPrimary: boolean;
+}) {
+  return prisma.listingImage.create({ data });
+}
+
+export async function listListingImages(listingId: string) {
+  return prisma.listingImage.findMany({
+    where: { listingId },
+    orderBy: { sortOrder: "asc" },
+  });
+}
+
+export async function deleteListingImageRow(id: string) {
+  return prisma.listingImage.delete({ where: { id } });
+}
+
+export async function countListingImages(listingId: string) {
+  return prisma.listingImage.count({ where: { listingId } });
+}
+
+export async function upsertListingVideo(data: {
+  listingId: string;
+  provider: "YOUTUBE" | "INSTAGRAM" | "TIKTOK";
+  originalUrl: string;
+  embedUrl: string | null;
+}) {
+  return prisma.listingVideo.upsert({
+    where: { listingId: data.listingId },
+    create: data,
+    update: {
+      provider: data.provider,
+      originalUrl: data.originalUrl,
+      embedUrl: data.embedUrl,
+    },
+  });
+}
+
+export async function deleteListingVideo(listingId: string) {
+  return prisma.listingVideo.deleteMany({ where: { listingId } });
+}
+
+export async function addFavorite(userId: string, listingId: string) {
+  return prisma.favorite.upsert({
+    where: { userId_listingId: { userId, listingId } },
+    create: { userId, listingId },
+    update: {},
+  });
+}
+
+export async function removeFavorite(userId: string, listingId: string) {
+  return prisma.favorite.deleteMany({ where: { userId, listingId } });
+}
+
+export async function listFavorites(userId: string) {
+  return prisma.favorite.findMany({
+    where: { userId, listing: { status: ListingStatus.ACTIVE } },
+    include: { listing: { include: publicInclude } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function isFavorited(userId: string, listingId: string) {
+  const row = await prisma.favorite.findUnique({
+    where: { userId_listingId: { userId, listingId } },
+  });
+  return !!row;
 }

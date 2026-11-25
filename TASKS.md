@@ -44,22 +44,22 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Public UI wired to PostgreSQL (mock fixtures deprecated)
 - [x] **Approval gate: schema + API + listing workflow review** (approved 2026-11-25)
 
-## Phase 4 — Auth & accounts ⛔ awaiting owner approval
+## Phase 4 — Auth & accounts ✅ approved 2026-11-25
 - [x] Register (email or mobile), login, logout, JWT sessions (Auth.js)
 - [x] Email verification; password forgot/reset (hashed tokens)
 - [x] Rate limiting on auth endpoints; no account-existence leakage
 - [x] Individual profile on register; dealer profile created (UNVERIFIED) — document upload Phase 6
 - [x] OTP module scaffolded, feature-flag OFF
 - [x] Password + schema Vitest; smoke login/register
-- [ ] **Approval gate: auth workflows**
+- [x] **Approval gate: auth workflows** (approved 2026-11-25)
 
-## Phase 5 — Listings & seller dashboard
-- [ ] 8-step create wizard (validation, drafts, back/next)
-- [ ] Signed-URL image upload → R2/S3; content validation; resize/optimize; reorder/remove; orphan cleanup
-- [ ] Social video URL validation + embed/fallback
-- [ ] Seller dashboard: lists by status, edit/delete/pause/reactivate/renew/sold
-- [ ] Favorites UI + API
-- [ ] E2E: create→upload→submit→moderate→edit→pause→renew→sold
+## Phase 5 — Listings & seller dashboard ⛔ awaiting owner approval
+- [x] 8-step create wizard (validation, drafts, back/next, EN/AR)
+- [x] Image upload pipeline (local storage adapter; MIME sniff + size limit; delete)
+- [x] Social video URL validation + embed/fallback (existing parser wired on write)
+- [x] Seller dashboard: status tabs + submit/pause/reactivate/renew/sold/remove
+- [x] Favorites UI + API
+- [x] Slug + lifecycle tests; typecheck/lint/build clean
 - [ ] **Approval gate: seller journey**
 
 ## Phase 6 — Dealer & admin

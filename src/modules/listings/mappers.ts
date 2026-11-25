@@ -75,7 +75,7 @@ export function toPublicDto(row: ListingRow): ListingPublicDto {
       phone).replace(/^\+/, "");
 
   return {
-    id: row.slug, // public URLs use slug (stable, shareable)
+    id: row.id,
     slug: row.slug,
     category,
     title: row.title,

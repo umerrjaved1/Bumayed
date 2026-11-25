@@ -23,9 +23,13 @@
 # production
 /build
 
+# local listing image uploads (Phase 5 adapter)
+/public/uploads/
+
 # misc
 .DS_Store
 *.pem
+.gitkeep
 
 # debug
 npm-debug.log*

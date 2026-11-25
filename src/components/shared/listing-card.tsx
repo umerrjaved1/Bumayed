@@ -21,7 +21,7 @@ export function ListingCard({ listing }: { listing: ListingPublicDto }) {
   ).format(listing.mileageKm ?? 0);
 
   return (
-    <Link href={`/listings/${listing.id}`} className="group block">
+    <Link href={`/listings/${listing.slug}`} className="group block">
       <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow group-hover:shadow-md">
         {/* Photo area — placeholder until image pipeline (Phase 5) */}
         <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-primary/85 to-primary">

@@ -24,6 +24,7 @@ import { PriceDisplay } from "@/components/shared/price-display";
 import { SpecList } from "@/components/shared/spec-list";
 import { ShareButton } from "@/components/shared/share-button";
 import { ReportDialog } from "@/components/shared/report-dialog";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 import { ListingCard } from "@/components/shared/listing-card";
 
 const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
@@ -175,6 +176,7 @@ export default async function ListingDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <FavoriteButton listingId={listing.id} />
               <ShareButton title={listing.title} />
               <ReportDialog />
             </div>

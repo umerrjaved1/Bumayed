@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { listMyListings } from "@/modules/listings/seller-service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,10 @@ export default async function DashboardPage({
   }
 
   const t = await getTranslations("dashboard");
+  const listings = await listMyListings({
+    id: session.user.id,
+    role: session.user.role,
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -51,12 +56,29 @@ export default async function DashboardPage({
             <CardTitle>{t("listings")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{t("listingsSoon")}</p>
-            <Button
-              className="mt-4"
-              render={<Link href="/dashboard/listings/new" />}
-            >
-              {t("postAd")}
+            <p className="text-sm text-muted-foreground">
+              {t("listingCount", { count: listings.length })}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button render={<Link href="/dashboard/listings" />}>
+                {t("manageListings")}
+              </Button>
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/listings/new" />}
+              >
+                {t("postAd")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("favoritesNav")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" render={<Link href="/dashboard/favorites" />}>
+              {t("viewFavorites")}
             </Button>
           </CardContent>
         </Card>

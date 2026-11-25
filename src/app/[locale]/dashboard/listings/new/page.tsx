@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
-import { Link } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
+import { ListingWizard } from "@/components/seller/listing-wizard";
 
 export const dynamic = "force-dynamic";
 
-/** Stub until Phase 5 listing wizard. */
-export default async function NewListingStubPage({
+export default async function NewListingPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
@@ -17,15 +15,5 @@ export default async function NewListingStubPage({
   const session = await auth();
   if (!session?.user) redirect(`/${locale}/auth/login`);
 
-  const t = await getTranslations("dashboard");
-
-  return (
-    <div className="mx-auto max-w-xl px-4 py-16 text-center">
-      <h1 className="text-2xl font-bold">{t("postAd")}</h1>
-      <p className="mt-3 text-muted-foreground">{t("listingsSoon")}</p>
-      <Button className="mt-8" render={<Link href="/dashboard" />}>
-        {t("title")}
-      </Button>
-    </div>
-  );
+  return <ListingWizard />;
 }
