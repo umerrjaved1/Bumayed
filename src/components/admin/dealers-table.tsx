@@ -1,21 +1,12 @@
 "use client";
 
+import { type AdminDealerRow, mapDealerRow } from "./row-mappers";
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-export type AdminDealerRow = {
-  id: string;
-  businessName: string;
-  status: string;
-  email: string | null;
-  phone: string;
-  location: string;
-  note: string | null;
-};
 
 export function DealersTable({
   initialItems,
@@ -36,12 +27,13 @@ export function DealersTable({
       return;
     }
     const data = await res.json();
-    setItems(
-      (data.items as Array<Record<string, unknown>>).map(mapDealerRow),
-    );
+    setItems((data.items as Array<Record<string, unknown>>).map(mapDealerRow));
   }
 
-  async function verify(id: string, status: "APPROVED" | "REJECTED" | "PENDING") {
+  async function verify(
+    id: string,
+    status: "APPROVED" | "REJECTED" | "PENDING",
+  ) {
     const res = await fetch(`/api/admin/dealers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -115,19 +107,4 @@ export function DealersTable({
   );
 }
 
-export function mapDealerRow(row: Record<string, unknown>): AdminDealerRow {
-  const user = row.user as
-    | { email?: string | null; phone?: string | null }
-    | undefined;
-  const emirate = row.emirate as { nameEn?: string } | null | undefined;
-  const city = row.city as { nameEn?: string } | null | undefined;
-  return {
-    id: String(row.id),
-    businessName: String(row.businessName),
-    status: String(row.verificationStatus),
-    email: (row.businessEmail as string | null) ?? user?.email ?? null,
-    phone: String(row.businessPhone ?? user?.phone ?? ""),
-    location: [city?.nameEn, emirate?.nameEn].filter(Boolean).join(", "),
-    note: (row.verificationNote as string | null) ?? null,
-  };
-}
+export type { AdminDealerRow };

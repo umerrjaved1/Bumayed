@@ -43,7 +43,7 @@ export function LanguageSwitcher() {
           <DropdownMenuItem
             key={l}
             disabled={l === locale}
-            onSelect={() =>
+            onClick={() =>
               startTransition(() => router.replace(pathname, { locale: l }))
             }
           >

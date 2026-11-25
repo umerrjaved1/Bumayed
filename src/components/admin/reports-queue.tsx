@@ -19,7 +19,11 @@ export type AdminReportRow = {
   createdAt: string;
 };
 
-export function ReportsQueue({ initialItems }: { initialItems: AdminReportRow[] }) {
+export function ReportsQueue({
+  initialItems,
+}: {
+  initialItems: AdminReportRow[];
+}) {
   const t = useTranslations("admin");
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -34,9 +38,7 @@ export function ReportsQueue({ initialItems }: { initialItems: AdminReportRow[] 
       return;
     }
     const data = await res.json();
-    setItems(
-      (data.items as Array<Record<string, unknown>>).map(mapReportRow),
-    );
+    setItems((data.items as Array<Record<string, unknown>>).map(mapReportRow));
   }
 
   async function resolve(id: string, status: "RESOLVED" | "DISMISSED") {
@@ -121,7 +123,11 @@ export function ReportsQueue({ initialItems }: { initialItems: AdminReportRow[] 
                 </div>
               </div>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setActiveId(r.id)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setActiveId(r.id)}
+              >
                 {t("reviewReport")}
               </Button>
             )}
@@ -134,9 +140,7 @@ export function ReportsQueue({ initialItems }: { initialItems: AdminReportRow[] 
 
 export function mapReportRow(row: Record<string, unknown>): AdminReportRow {
   const listing = row.listing as
-    | { title?: string; slug?: string }
-    | null
-    | undefined;
+    { title?: string; slug?: string } | null | undefined;
   return {
     id: String(row.id),
     reason: String(row.reason),

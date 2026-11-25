@@ -1,5 +1,6 @@
 "use client";
 
+import { type AdminUserRow, mapUserRow } from "./row-mappers";
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
@@ -7,16 +8,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-
-export type AdminUserRow = {
-  id: string;
-  email: string | null;
-  phone: string | null;
-  role: string;
-  status: string;
-  displayName: string;
-  listingsCount: number;
-};
 
 export function UsersTable({
   initialItems,
@@ -40,12 +31,13 @@ export function UsersTable({
       return;
     }
     const data = await res.json();
-    setItems(
-      (data.items as Array<Record<string, unknown>>).map(mapUserRow),
-    );
+    setItems((data.items as Array<Record<string, unknown>>).map(mapUserRow));
   }
 
-  async function setStatus(id: string, status: "ACTIVE" | "SUSPENDED" | "BLOCKED") {
+  async function setStatus(
+    id: string,
+    status: "ACTIVE" | "SUSPENDED" | "BLOCKED",
+  ) {
     const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -86,12 +78,22 @@ export function UsersTable({
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b bg-muted/40 text-start">
             <tr>
-              <th className="px-3 py-2 text-start font-medium">{t("colName")}</th>
-              <th className="px-3 py-2 text-start font-medium">{t("colRole")}</th>
-              <th className="px-3 py-2 text-start font-medium">{t("colStatus")}</th>
-              <th className="px-3 py-2 text-start font-medium">{t("colListings")}</th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("colName")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("colRole")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("colStatus")}
+              </th>
+              <th className="px-3 py-2 text-start font-medium">
+                {t("colListings")}
+              </th>
               {canSuspend ? (
-                <th className="px-3 py-2 text-start font-medium">{t("colActions")}</th>
+                <th className="px-3 py-2 text-start font-medium">
+                  {t("colActions")}
+                </th>
               ) : null}
             </tr>
           </thead>
@@ -154,16 +156,4 @@ export function UsersTable({
   );
 }
 
-export function mapUserRow(row: Record<string, unknown>): AdminUserRow {
-  const profile = row.profile as { displayName?: string } | null | undefined;
-  const count = row._count as { listings?: number } | undefined;
-  return {
-    id: String(row.id),
-    email: (row.email as string | null) ?? null,
-    phone: (row.phone as string | null) ?? null,
-    role: String(row.role),
-    status: String(row.status),
-    displayName: profile?.displayName ?? (row.email as string) ?? "—",
-    listingsCount: count?.listings ?? 0,
-  };
-}
+export type { AdminUserRow };

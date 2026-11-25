@@ -41,7 +41,9 @@ export default async function AdminContentPage({
       <section>
         <h2 className="text-lg font-semibold">{t("banners")}</h2>
         {banners.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">{t("emptyBanners")}</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {t("emptyBanners")}
+          </p>
         ) : (
           <ul className="mt-3 divide-y rounded-lg border">
             {banners.map((b) => (

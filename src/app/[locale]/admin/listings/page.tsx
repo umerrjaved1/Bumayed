@@ -1,10 +1,8 @@
 import { setRequestLocale } from "next-intl/server";
 import { ListingStatus } from "@/generated/prisma/client";
 import { requireAdminPage } from "@/lib/admin-guard";
-import {
-  ModerationQueue,
-  mapListingRow,
-} from "@/components/admin/moderation-queue";
+import { ModerationQueue } from "@/components/admin/moderation-queue";
+import { mapListingRow } from "@/components/admin/row-mappers";
 import { listAdminListings } from "@/modules/admin/service";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +21,8 @@ export default async function AdminListingsPage({
 
   const statusRaw = sp.status;
   const status =
-    statusRaw && Object.values(ListingStatus).includes(statusRaw as ListingStatus)
+    statusRaw &&
+    Object.values(ListingStatus).includes(statusRaw as ListingStatus)
       ? (statusRaw as ListingStatus)
       : ListingStatus.PENDING;
 

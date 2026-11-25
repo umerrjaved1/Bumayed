@@ -56,7 +56,9 @@ export default async function AdminDashboardPage({
             href={tile.href}
             className="rounded-lg border bg-background/60 p-4 transition-colors hover:border-primary/40"
           >
-            <p className="text-sm text-muted-foreground">{t(`stats.${tile.key}`)}</p>
+            <p className="text-sm text-muted-foreground">
+              {t(`stats.${tile.key}`)}
+            </p>
             <p className="mt-2 text-3xl font-semibold tracking-tight">
               {tile.key === "revenue"
                 ? `AED ${tile.value.toLocaleString()}`

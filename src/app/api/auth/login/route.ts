@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CredentialsSignin } from "next-auth";
 import { signIn } from "@/auth";
 import { loginSchema } from "@/modules/auth/schemas";
 import { clientIp } from "@/modules/auth/rate-limit";
@@ -12,6 +13,19 @@ const MESSAGES: Record<string, string> = {
   RATE_LIMITED: "Too many attempts. Try again later.",
   CredentialsSignin: "Invalid email/phone or password.",
 };
+
+function credentialsError(code: string) {
+  const status = code === "RATE_LIMITED" ? 429 : 401;
+  return NextResponse.json(
+    {
+      error: {
+        code,
+        message: MESSAGES[code] ?? MESSAGES.INVALID_CREDENTIALS,
+      },
+    },
+    { status },
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -36,20 +50,15 @@ export async function POST(request: Request) {
       const code =
         ("code" in result && typeof result.code === "string" && result.code) ||
         "INVALID_CREDENTIALS";
-      const status = code === "RATE_LIMITED" ? 429 : 401;
-      return NextResponse.json(
-        {
-          error: {
-            code,
-            message: MESSAGES[code] ?? MESSAGES.INVALID_CREDENTIALS,
-          },
-        },
-        { status },
-      );
+      return credentialsError(code);
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    // Server-side signIn() throws (rather than returns) credential failures.
+    if (err instanceof CredentialsSignin) {
+      return credentialsError(err.code || "INVALID_CREDENTIALS");
+    }
     if (err && typeof err === "object" && "digest" in err) {
       return NextResponse.json({ ok: true });
     }

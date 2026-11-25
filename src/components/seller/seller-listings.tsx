@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -49,10 +49,10 @@ export function SellerListings() {
     [t],
   );
 
-  // Initial + tab change: load on first render via button defaults
-  if (items === null && !pending && !error) {
-    load(tab);
-  }
+  // Initial load runs on the client only; tab changes call load() directly.
+  useEffect(() => {
+    load("ALL");
+  }, [load]);
 
   async function act(id: string, action: string) {
     setError(null);

@@ -25,7 +25,11 @@ const ITEMS: NavItem[] = [
     labelKey: "navReports",
     capability: "admin.reports.resolve",
   },
-  { href: "/admin/users", labelKey: "navUsers", capability: "admin.users.view" },
+  {
+    href: "/admin/users",
+    labelKey: "navUsers",
+    capability: "admin.users.view",
+  },
   {
     href: "/admin/dealers",
     labelKey: "navDealers",

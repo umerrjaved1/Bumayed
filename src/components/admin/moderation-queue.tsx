@@ -1,5 +1,6 @@
 "use client";
 
+import { type AdminListingRow, mapListingRow } from "./row-mappers";
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
@@ -15,21 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Link } from "@/i18n/navigation";
-
-export type AdminListingRow = {
-  id: string;
-  title: string;
-  slug: string;
-  status: string;
-  priceAed: number;
-  submittedAt: string | null;
-  rejectionReason: string | null;
-  sellerName: string;
-  category: string;
-  location: string;
-  imageUrl: string | null;
-  openReports: number;
-};
 
 export function ModerationQueue({
   initialItems,
@@ -55,9 +41,7 @@ export function ModerationQueue({
       return;
     }
     const data = await res.json();
-    setItems(
-      (data.items as Array<Record<string, unknown>>).map(mapListingRow),
-    );
+    setItems((data.items as Array<Record<string, unknown>>).map(mapListingRow));
   }
 
   async function act(
@@ -244,40 +228,4 @@ export function ModerationQueue({
   );
 }
 
-export function mapListingRow(row: Record<string, unknown>): AdminListingRow {
-  const seller = row.seller as
-    | {
-        profile?: { displayName?: string } | null;
-        dealerProfile?: { businessName?: string } | null;
-        email?: string | null;
-      }
-    | undefined;
-  const category = row.category as { nameEn?: string } | undefined;
-  const emirate = row.emirate as { nameEn?: string } | undefined;
-  const city = row.city as { nameEn?: string } | undefined;
-  const images = row.images as Array<{ objectKey?: string }> | undefined;
-  const reports = row.reports as unknown[] | undefined;
-
-  return {
-    id: String(row.id),
-    title: String(row.title),
-    slug: String(row.slug),
-    status: String(row.status),
-    priceAed: Number(row.priceAed),
-    submittedAt: row.submittedAt
-      ? new Date(String(row.submittedAt)).toISOString()
-      : null,
-    rejectionReason: (row.rejectionReason as string | null) ?? null,
-    sellerName:
-      seller?.dealerProfile?.businessName ??
-      seller?.profile?.displayName ??
-      seller?.email ??
-      "—",
-    category: category?.nameEn ?? "—",
-    location: [city?.nameEn, emirate?.nameEn].filter(Boolean).join(", "),
-    imageUrl: images?.[0]?.objectKey
-      ? `/uploads/${images[0].objectKey}`
-      : null,
-    openReports: reports?.length ?? 0,
-  };
-}
+export type { AdminListingRow };

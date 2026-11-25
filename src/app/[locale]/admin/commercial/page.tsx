@@ -23,7 +23,9 @@ export default async function AdminCommercialPage({
     <div className="space-y-8">
       <section>
         <h2 className="text-lg font-semibold">{t("packages")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("packagesHint")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("packagesHint")}
+        </p>
         <ul className="mt-3 divide-y rounded-lg border">
           {packages.map((p) => (
             <li

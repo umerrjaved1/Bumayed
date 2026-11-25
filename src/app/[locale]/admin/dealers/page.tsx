@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { requireAdminPage } from "@/lib/admin-guard";
-import { DealersTable, mapDealerRow } from "@/components/admin/dealers-table";
+import { DealersTable } from "@/components/admin/dealers-table";
+import { mapDealerRow } from "@/components/admin/row-mappers";
 import { can } from "@/modules/admin/policies";
 import { listAdminDealers } from "@/modules/admin/service";
 

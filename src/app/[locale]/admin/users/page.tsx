@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { requireAdminPage } from "@/lib/admin-guard";
-import { UsersTable, mapUserRow } from "@/components/admin/users-table";
+import { UsersTable } from "@/components/admin/users-table";
+import { mapUserRow } from "@/components/admin/row-mappers";
 import { can } from "@/modules/admin/policies";
 import { searchAdminUsers } from "@/modules/admin/service";
 
