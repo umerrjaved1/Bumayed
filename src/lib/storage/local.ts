@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { env } from "@/lib/env";
+import { publicUrlForKey } from "@/lib/storage/public-url";
 import { deleteR2Object, putR2Object, r2Configured } from "@/lib/storage/r2";
+
+export { publicUrlForKey };
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -72,11 +75,3 @@ export async function deleteListingImage(objectKey: string): Promise<void> {
   }
 }
 
-export function publicUrlForKey(objectKey: string): string {
-  if (env.STORAGE_PUBLIC_URL) {
-    return `${env.STORAGE_PUBLIC_URL.replace(/\/$/, "")}/${objectKey}`;
-  }
-  const seed = objectKey.match(/^seed\/([^/]+)\/1\.jpg$/);
-  if (seed) return `/seed-photos/${seed[1]}.jpg`;
-  return `/uploads/${objectKey}`;
-}

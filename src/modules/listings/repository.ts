@@ -85,8 +85,12 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
 
   // Category-specific specs (stored uppercase in seed)
   if (q.condition) {
+    // Older wizard ads stored condition in lowercase, so match both.
     and.push({
-      specs: { path: ["condition"], equals: upper(q.condition) },
+      OR: [
+        { specs: { path: ["condition"], equals: upper(q.condition) } },
+        { specs: { path: ["condition"], equals: q.condition.toLowerCase() } },
+      ],
     });
   }
   if (q.transmission) {
@@ -205,7 +209,12 @@ export async function findMakesForCategory(category: VehicleCategoryCode) {
   return rows.map((r) => r.nameEn);
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function findListingById(id: string) {
+  // The id column is a UUID; querying with a slug would make Postgres throw.
+  if (!UUID_RE.test(id)) return null;
   return prisma.listing.findUnique({
     where: { id },
     include: publicInclude,
@@ -246,6 +255,14 @@ export async function findCategoryByCode(code: VehicleCategoryCode) {
 
 export async function findEmirateByCode(code: string) {
   return prisma.emirate.findUnique({ where: { code } });
+}
+
+export async function cityBelongsToEmirate(cityId: string, emirateId: string) {
+  const city = await prisma.city.findFirst({
+    where: { id: cityId, emirateId },
+    select: { id: true },
+  });
+  return !!city;
 }
 
 export async function listCitiesByEmirate(emirateId: string) {

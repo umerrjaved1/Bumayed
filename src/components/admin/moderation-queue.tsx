@@ -139,7 +139,7 @@ export function ModerationQueue({
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {item.category} · {item.location} · AED{" "}
-                  {item.priceAed.toLocaleString()} · {item.sellerName}
+                  {item.priceAed.toLocaleString("en-AE")} · {item.sellerName}
                 </p>
                 {item.rejectionReason ? (
                   <p className="text-sm text-destructive">

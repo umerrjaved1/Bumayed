@@ -41,13 +41,20 @@ export async function createSellerListing(input: {
   const hits = await findProhibitedTerms(`${input.data.title}\n${description}`);
   if (hits.length > 0) throw new Error("PROHIBITED_CONTENT");
 
-  await assertListingQuota(input.user);
   const category = await repo.findCategoryByCode(input.data.category);
   if (!category) throw new Error("INVALID_CATEGORY");
 
   const emirate = await repo.findEmirateByCode(input.data.emirateCode);
   if (!emirate) throw new Error("INVALID_EMIRATE");
+  if (!(await repo.cityBelongsToEmirate(input.data.cityId, emirate.id))) {
+    throw new Error("INVALID_CITY");
+  }
+  // Validate the video before writing, so a bad link cannot leave a
+  // half-saved listing behind (the wizard would then create a duplicate).
+  const video = await resolveVideo(input.data.videoUrl);
 
+  // Quota is used when an ad is submitted, not when a draft is saved.
+  if (input.data.submit) await assertListingQuota(input.user);
   const status = input.data.submit ? ListingStatus.PENDING : ListingStatus.DRAFT;
   const now = new Date();
 
@@ -72,13 +79,9 @@ export async function createSellerListing(input: {
     contactPhone: emptyToNull(input.data.contactPhone),
     contactWhatsapp: emptyToNull(input.data.contactWhatsapp),
     submittedAt: status === ListingStatus.PENDING ? now : null,
-    expiresAt:
-      status === ListingStatus.PENDING
-        ? new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
-        : null,
+    // expiresAt is set when a moderator approves the ad.
   });
 
-  const video = await resolveVideo(input.data.videoUrl);
   if (video) {
     await repo.upsertListingVideo({ listingId: row.id, ...video });
   }
@@ -91,6 +94,7 @@ export async function createSellerListing(input: {
       listingId: fresh.id,
       title: fresh.title,
       status: "PENDING",
+      cycleAt: fresh.submittedAt,
     }).catch((err) => console.error("listing notification", err));
   }
   return toPublicDto(fresh!);
@@ -114,10 +118,22 @@ export async function updateSellerListing(input: {
     throw new Error("NOT_EDITABLE");
   }
 
+  // Edits must pass the same banned-words check as new ads.
+  const { findProhibitedTerms } = await import("@/modules/moderation/policy");
+  const hits = await findProhibitedTerms(
+    `${input.data.title}
+${input.data.description}`,
+  );
+  if (hits.length > 0) throw new Error("PROHIBITED_CONTENT");
+
   const category = await repo.findCategoryByCode(input.data.category);
   if (!category) throw new Error("INVALID_CATEGORY");
   const emirate = await repo.findEmirateByCode(input.data.emirateCode);
   if (!emirate) throw new Error("INVALID_EMIRATE");
+  if (!(await repo.cityBelongsToEmirate(input.data.cityId, emirate.id))) {
+    throw new Error("INVALID_CITY");
+  }
+  const video = await resolveVideo(input.data.videoUrl);
 
   let nextStatus: ListingStatus = existing.status;
   let submittedAt = existing.submittedAt;
@@ -125,6 +141,24 @@ export async function updateSellerListing(input: {
     input.data.submit &&
     (existing.status === ListingStatus.DRAFT ||
       existing.status === ListingStatus.REJECTED)
+  ) {
+    // First submission uses a quota slot; resubmitting a rejected ad does not.
+    if (!existing.submittedAt) await assertListingQuota(input.user);
+    nextStatus = ListingStatus.PENDING;
+    submittedAt = new Date();
+  }
+
+  // Changing the text or video of a live or paused ad sends it back to a
+  // moderator, so approved ads cannot be edited into something else.
+  // Price, contact and spec changes stay live.
+  const textChanged =
+    input.data.title.trim() !== existing.title.trim() ||
+    input.data.description.trim() !== existing.description.trim() ||
+    (video?.originalUrl ?? null) !== (existing.video?.originalUrl ?? null);
+  if (
+    textChanged &&
+    (existing.status === ListingStatus.ACTIVE ||
+      existing.status === ListingStatus.PAUSED)
   ) {
     nextStatus = ListingStatus.PENDING;
     submittedAt = new Date();
@@ -157,9 +191,12 @@ export async function updateSellerListing(input: {
     contactPhone: emptyToNull(input.data.contactPhone),
     contactWhatsapp: emptyToNull(input.data.contactWhatsapp),
     submittedAt,
+    ...(nextStatus === ListingStatus.PENDING &&
+    existing.status === ListingStatus.REJECTED
+      ? { rejectedAt: null, rejectionReason: null }
+      : {}),
   });
 
-  const video = await resolveVideo(input.data.videoUrl);
   if (video) {
     await repo.upsertListingVideo({ listingId: input.listingId, ...video });
   } else {
@@ -167,6 +204,16 @@ export async function updateSellerListing(input: {
   }
 
   const fresh = await repo.findListingById(input.listingId);
+  if (nextStatus === ListingStatus.PENDING) {
+    const { notifyListingEvent } = await import("@/modules/notifications/events");
+    await notifyListingEvent({
+      sellerId: existing.sellerId,
+      listingId: input.listingId,
+      title: input.data.title,
+      status: "PENDING",
+      cycleAt: submittedAt,
+    }).catch((err) => console.error("listing notification", err));
+  }
   return toPublicDto(fresh!);
 }
 
@@ -195,6 +242,11 @@ export async function runSellerAction(input: {
     sold: ListingStatus.SOLD,
     remove: ListingStatus.REMOVED,
   } as const;
+
+  if (input.action === "submit") {
+    const row = await repo.findListingById(input.listingId);
+    if (row && !row.submittedAt) await assertListingQuota(input.user);
+  }
 
   return transitionListing({
     listingId: input.listingId,

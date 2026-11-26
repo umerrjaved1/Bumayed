@@ -6,6 +6,7 @@ import {
   applySignedWebhook,
   buildSandboxEvent,
   getOwnedPayment,
+  sandboxPaymentsAllowed,
 } from "@/modules/payments/service";
 import type { ProviderEvent } from "@/modules/payments/events";
 
@@ -24,7 +25,7 @@ const OUTCOMES: Record<string, ProviderEvent["type"]> = {
  */
 export async function POST(request: Request) {
   try {
-    if (activeProvider() !== "sandbox") {
+    if (activeProvider() !== "sandbox" || !sandboxPaymentsAllowed()) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Sandbox disabled" } },
         { status: 403 },

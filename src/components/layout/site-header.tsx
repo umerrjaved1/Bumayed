@@ -48,7 +48,6 @@ export async function SiteHeader() {
     { href: "/cars", label: tn("cars") },
     { href: "/motorcycles", label: tn("motorcycles") },
     { href: "/boats", label: tn("boats") },
-    { href: "/dealers", label: tn("dealers") },
   ] as const;
 
   return (

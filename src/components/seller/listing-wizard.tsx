@@ -34,6 +34,7 @@ const EMIRATES = ["AUH", "DXB", "SHJ", "AJM", "UAQ", "RAK", "FUJ"] as const;
 export function ListingWizard() {
   const t = useTranslations("wizard");
   const te = useTranslations("emirates");
+  const tf = useTranslations("filters");
   const router = useRouter();
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -87,13 +88,18 @@ export function ListingWizard() {
       .then((r) => r.json())
       .then((d) => {
         setCities(d.cities ?? []);
-        setCityId((prev) => prev || d.cities?.[0]?.id || "");
+        const list: { id: string }[] = d.cities ?? [];
+        setCityId((prev) =>
+          list.some((c) => c.id === prev) ? prev : list[0]?.id || "",
+        );
       })
       .catch(() => setCities([]));
   }, [emirateCode]);
 
   function buildPayload(submit: boolean) {
-    const specs: Record<string, string | number | boolean> = { condition };
+    const specs: Record<string, string | number | boolean> = {
+      condition: condition.toUpperCase(),
+    };
     if (category === "cars") {
       specs.transmission = transmission.toUpperCase();
       specs.fuelType = fuelType.toUpperCase();
@@ -116,14 +122,15 @@ export function ListingWizard() {
       emirateCode,
       cityId,
       specs,
-      contactPhone,
-      contactWhatsapp: contactPhone,
+      contactPhone: /^\+[1-9]\d{7,14}$/.test(contactPhone) ? contactPhone : "",
+      contactWhatsapp: /^\+[1-9]\d{7,14}$/.test(contactPhone) ? contactPhone : "",
       videoUrl: videoUrl || null,
       submit,
     };
   }
 
-  async function save(submit: boolean) {
+  /** Saves the listing and returns its id, or null when the save failed. */
+  async function save(submit: boolean): Promise<string | null> {
     setError(null);
     setPending(true);
     try {
@@ -139,17 +146,17 @@ export function ListingWizard() {
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error?.message ?? t("error"));
-        return false;
+        return null;
       }
       setListingId(data.listing.id);
       if (submit) {
         router.push("/dashboard/listings");
         router.refresh();
       }
-      return true;
+      return data.listing.id as string;
     } catch {
       setError(t("error"));
-      return false;
+      return null;
     } finally {
       setPending(false);
     }
@@ -157,12 +164,8 @@ export function ListingWizard() {
 
   async function onUpload(files: FileList | null) {
     if (!files?.length) return;
-    // Ensure draft exists before upload
-    if (!listingId) {
-      const ok = await save(false);
-      if (!ok) return;
-    }
-    const id = listingId;
+    // Ensure draft exists before upload. State updates are async, so use the returned id.
+    const id = listingId ?? (await save(false));
     if (!id) return;
     setPending(true);
     try {
@@ -187,7 +190,28 @@ export function ListingWizard() {
 
   async function next() {
     setError(null);
-    if (step === "details" || step === "price" || step === "photos") {
+    if (step === "details") {
+      if (title.trim().length < 8) {
+        setError(t("titleTooShort"));
+        return;
+      }
+      if (description.trim().length < 20) {
+        setError(t("descriptionTooShort"));
+        return;
+      }
+    }
+    if (step === "price") {
+      const price = Number(priceAed);
+      if (!Number.isInteger(price) || price <= 0) {
+        setError(t("priceRequired"));
+        return;
+      }
+      if (!cityId) {
+        setError(t("cityRequired"));
+        return;
+      }
+    }
+    if (step === "price" || step === "photos") {
       const ok = await save(false);
       if (!ok) return;
     }
@@ -349,7 +373,7 @@ export function ListingWizard() {
                 >
                   {["sport", "cruiser", "touring", "adventure", "scooter"].map((f) => (
                     <option key={f} value={f}>
-                      {f}
+                      {tf(f)}
                     </option>
                   ))}
                 </select>
@@ -364,7 +388,7 @@ export function ListingWizard() {
                 >
                   {["yacht", "fishing", "speedboat", "jetski", "sailboat"].map((f) => (
                     <option key={f} value={f}>
-                      {f}
+                      {tf(f)}
                     </option>
                   ))}
                 </select>

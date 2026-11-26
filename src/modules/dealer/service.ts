@@ -4,6 +4,7 @@ import {
   Role,
 } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { dealerQuotaUsage } from "@/modules/payments/service";
 import type { SessionUser } from "@/modules/listings/policies";
 
 export function assertDealer(user: SessionUser) {
@@ -17,7 +18,7 @@ export async function getDealerDashboard(user: SessionUser) {
 
   const dealerUserId = user.id;
 
-  const [profile, listings, subscription] = await Promise.all([
+  const [profile, listings, subscription, usage] = await Promise.all([
     prisma.dealerProfile.findUnique({
       where: { userId: dealerUserId },
       include: {
@@ -40,6 +41,7 @@ export async function getDealerDashboard(user: SessionUser) {
       include: { package: true },
       orderBy: { endsAt: "desc" },
     }),
+    dealerQuotaUsage(dealerUserId),
   ]);
 
   if (!profile && user.role === Role.DEALER) {
@@ -69,7 +71,7 @@ export async function getDealerDashboard(user: SessionUser) {
           status: subscription.status,
           startsAt: subscription.startsAt.toISOString(),
           endsAt: subscription.endsAt.toISOString(),
-          listingsUsedThisPeriod: subscription.listingsUsedThisPeriod,
+          listingsUsedThisPeriod: usage?.used ?? 0,
           featuredSlotsUsed: subscription.featuredSlotsUsed,
           package: {
             id: subscription.package.id,

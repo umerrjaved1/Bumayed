@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import type { ListingQuery, VehicleCategoryCode } from "@/modules/listings/types";
+import { startNavigationProgress } from "@/components/layout/navigation-progress";
+import type {
+  ListingQuery,
+  VehicleCategoryCode,
+} from "@/modules/listings/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -20,8 +25,20 @@ const EMIRATES = ["AUH", "DXB", "SHJ", "AJM", "UAQ", "RAK", "FUJ"] as const;
 const TRANSMISSIONS = ["automatic", "manual"] as const;
 const FUEL_TYPES = ["petrol", "diesel", "hybrid", "electric"] as const;
 const REGIONAL_SPECS = ["gcc", "american", "european", "japanese"] as const;
-const MOTO_TYPES = ["sport", "cruiser", "touring", "adventure", "scooter"] as const;
-const BOAT_TYPES = ["yacht", "fishing", "speedboat", "jetski", "sailboat"] as const;
+const MOTO_TYPES = [
+  "sport",
+  "cruiser",
+  "touring",
+  "adventure",
+  "scooter",
+] as const;
+const BOAT_TYPES = [
+  "yacht",
+  "fishing",
+  "speedboat",
+  "jetski",
+  "sailboat",
+] as const;
 
 type FilterFormProps = {
   category: VehicleCategoryCode;
@@ -30,12 +47,18 @@ type FilterFormProps = {
   onApplied?: () => void; // closes the mobile drawer
 };
 
-export function FilterForm({ category, makes, values, onApplied }: FilterFormProps) {
+export function FilterForm({
+  category,
+  makes,
+  values,
+  onApplied,
+}: FilterFormProps) {
   const t = useTranslations("filters");
   const te = useTranslations("emirates");
   const router = useRouter();
   const pathname = usePathname();
 
+  const [pending, startTransition] = useTransition();
   const [form, setForm] = useState({
     keyword: values.keyword ?? "",
     make: values.make ?? "",
@@ -65,12 +88,14 @@ export function FilterForm({ category, makes, values, onApplied }: FilterFormPro
       if (value) params.set(key, value);
     }
     if (values.sort !== "newest") params.set("sort", values.sort);
-    router.push(`${pathname}?${params.toString()}`);
+    startNavigationProgress();
+    startTransition(() => router.push(`${pathname}?${params.toString()}`));
     onApplied?.();
   }
 
   function reset() {
-    router.push(pathname);
+    startNavigationProgress();
+    startTransition(() => router.push(pathname));
     onApplied?.();
   }
 
@@ -145,7 +170,9 @@ export function FilterForm({ category, makes, values, onApplied }: FilterFormPro
             id="f-mileageMax"
             inputMode="numeric"
             value={form.mileageMax}
-            onChange={(e) => set("mileageMax")(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) =>
+              set("mileageMax")(e.target.value.replace(/\D/g, ""))
+            }
           />
         </div>
       )}
@@ -236,10 +263,16 @@ export function FilterForm({ category, makes, values, onApplied }: FilterFormPro
       )}
 
       <div className="flex gap-2 pt-2">
-        <Button type="submit" className="flex-1">
+        <Button type="submit" className="flex-1" disabled={pending}>
+          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {t("apply")}
         </Button>
-        <Button type="button" variant="outline" onClick={reset}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={reset}
+          disabled={pending}
+        >
           {t("reset")}
         </Button>
       </div>
@@ -268,7 +301,9 @@ function FilterSelect({
       <Select value={value} onValueChange={(v) => onChange(v ?? "")}>
         <SelectTrigger id={id} className="w-full">
           <SelectValue placeholder={anyLabel}>
-            {(v: string) => options.find((o) => o.value === v)?.label ?? anyLabel}
+            {(v: string) =>
+              options.find((o) => o.value === v)?.label ?? anyLabel
+            }
           </SelectValue>
         </SelectTrigger>
         <SelectContent>

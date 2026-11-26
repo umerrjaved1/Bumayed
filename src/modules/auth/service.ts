@@ -219,7 +219,9 @@ export async function requestPasswordReset(
   if (!email) return { ok: true, message: GENERIC_OK };
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (user?.passwordHash) {
+  const disabled =
+    user?.status === UserStatus.SUSPENDED || user?.status === UserStatus.BLOCKED;
+  if (user?.passwordHash && !disabled) {
     const raw = await issueToken({
       identifier: email,
       purpose: "PASSWORD_RESET",
@@ -266,9 +268,18 @@ export async function resetPassword(input: {
   }
 
   const passwordHash = await hashPassword(input.password);
+  // A reset proves the inbox, so it can finish verification, but it must
+  // never lift a suspension or block.
   await prisma.user.updateMany({
-    where: { email },
+    where: { email, status: UserStatus.PENDING_VERIFICATION },
     data: { passwordHash, status: UserStatus.ACTIVE },
+  });
+  await prisma.user.updateMany({
+    where: {
+      email,
+      status: { notIn: [UserStatus.PENDING_VERIFICATION, UserStatus.SUSPENDED, UserStatus.BLOCKED] },
+    },
+    data: { passwordHash },
   });
 
   return { ok: true };

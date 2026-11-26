@@ -28,6 +28,8 @@ export type ListingPublicDto = {
   trim?: string;
   emirate: EmirateCode;
   city: string;
+  /** Arabic city name, shown on Arabic pages. */
+  cityAr: string;
   condition: "new" | "used";
   description: string;
     photoCount: number;

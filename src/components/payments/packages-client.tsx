@@ -53,7 +53,7 @@ export function PackagesClient({
           <div>
             <p className="font-medium">{locale === "ar" && p.nameAr ? p.nameAr : p.name}</p>
             <p className="text-sm text-muted-foreground">
-              AED {p.priceAed.toLocaleString()} · {p.validityDays} {t("days")} ·{" "}
+              AED {p.priceAed.toLocaleString("en-AE")} · {p.validityDays} {t("days")} ·{" "}
               {t("slots", { count: p.featuredSlots })}
               {p.monthlyListingQuota == null
                 ? ` · ${t("unlimited")}`

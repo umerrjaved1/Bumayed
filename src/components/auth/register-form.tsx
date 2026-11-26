@@ -34,7 +34,10 @@ export function RegisterForm() {
           email: String(fd.get("email") ?? ""),
           phone: String(fd.get("phone") ?? ""),
           password: String(fd.get("password") ?? ""),
-          businessName: String(fd.get("businessName") ?? ""),
+          businessName:
+            accountType === "dealer"
+              ? String(fd.get("businessName") ?? "")
+              : undefined,
         }),
       });
       const data = await res.json();

@@ -28,6 +28,8 @@ export default function CheckoutPage() {
       }
       setResult(body.action ?? "ok");
       toast.success(t("recorded"));
+    } catch {
+      toast.error(t("error"));
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@ import { assertTransition, type LifecycleActor } from "./lifecycle";
 import { toPublicDto } from "./mappers";
 import {
   assertCanManageListing,
+  canManageListing,
   isModerator,
   type SessionUser,
 } from "./policies";
@@ -32,6 +33,18 @@ export async function getPublicListingBySlug(
 ): Promise<ListingPublicDto | null> {
   const row = await repo.findActiveBySlug(slug);
   return row ? toPublicDto(row) : null;
+}
+
+/** Active ads are public. The owner and moderators can also open ads that are not live yet. */
+export async function getVisibleListingBySlug(
+  slug: string,
+  user: SessionUser | null,
+): Promise<{ listing: ListingPublicDto; status: ListingStatus; preview: boolean } | null> {
+  const row = await repo.findBySlug(slug);
+  if (!row || row.status === ListingStatus.REMOVED) return null;
+  const preview = row.status !== ListingStatus.ACTIVE;
+  if (preview && !canManageListing(user, row.sellerId)) return null;
+  return { listing: toPublicDto(row), status: row.status, preview };
 }
 
 export async function getFeaturedListings(
@@ -95,7 +108,12 @@ export async function transitionListing(input: {
     data.approvedAt = now;
     data.rejectedAt = null;
     data.rejectionReason = null;
-    if (row.status === ListingStatus.EXPIRED) {
+    // Approval (from PENDING) and renewal (from EXPIRED) start a new 60-day run.
+    // Without this, ads submitted through PATCH never got an expiry date.
+    if (
+      row.status === ListingStatus.EXPIRED ||
+      row.status === ListingStatus.PENDING
+    ) {
       data.expiresAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
     }
   }
@@ -108,19 +126,30 @@ export async function transitionListing(input: {
 
   const updated = await repo.updateListingStatus(input.listingId, data);
   const dto = toPublicDto(updated);
-  if (
+  // ACTIVE is only an "approved" notice when a moderator approved it, not
+  // when the seller un-pauses or renews.
+  const notifies =
     input.to === ListingStatus.PENDING ||
-    input.to === ListingStatus.ACTIVE ||
     input.to === ListingStatus.REJECTED ||
-    input.to === ListingStatus.EXPIRED
-  ) {
+    input.to === ListingStatus.EXPIRED ||
+    (input.to === ListingStatus.ACTIVE && input.actor === "moderator");
+  if (notifies) {
+    const cycleAt =
+      input.to === ListingStatus.PENDING
+        ? updated.submittedAt
+        : input.to === ListingStatus.ACTIVE
+          ? updated.approvedAt
+          : input.to === ListingStatus.REJECTED
+            ? updated.rejectedAt
+            : updated.expiresAt;
     const { notifyListingEvent } = await import("@/modules/notifications/events");
     await notifyListingEvent({
       sellerId: updated.sellerId,
       listingId: updated.id,
       title: updated.title,
-      status: input.to,
+      status: input.to as "PENDING" | "ACTIVE" | "REJECTED" | "EXPIRED",
       reason: input.rejectionReason,
+      cycleAt,
     }).catch((err) => console.error("listing notification", err));
   }
   return dto;

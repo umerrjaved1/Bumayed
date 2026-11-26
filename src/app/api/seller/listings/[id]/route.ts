@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { adminErrorResponse } from "@/modules/admin/http";
 import { requireSessionUser } from "@/lib/auth-session";
 import {
   listingActionSchema,
@@ -97,9 +98,6 @@ function mapErr(err: unknown, label: string) {
       );
     }
   }
-  console.error(label, err);
-  return NextResponse.json(
-    { error: { code: "INTERNAL", message: "Request failed" } },
-    { status: 500 },
-  );
+  // Maps NOT_EDITABLE, invalid fields, bad JSON and Prisma input errors to 4xx.
+  return adminErrorResponse(err, `${label} failed`);
 }

@@ -44,6 +44,12 @@ const envSchema = z.object({
   PAYMENT_PROVIDER: z.enum(["sandbox", "telr", "ni", "stripe"]).default("sandbox"),
   PAYMENT_PROVIDER_API_KEY: z.string().optional(),
   PAYMENT_PROVIDER_WEBHOOK_SECRET: z.string().optional(),
+  // The sandbox lets a buyer mark their own payment as paid. It is always on
+  // in development, and in production only when this is "true".
+  ALLOW_SANDBOX_PAYMENTS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
 
   // Monitoring (pre-production)
   SENTRY_DSN: z.string().optional(),

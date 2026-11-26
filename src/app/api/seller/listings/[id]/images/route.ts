@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { adminErrorResponse } from "@/modules/admin/http";
 import { env } from "@/lib/env";
 import { requireSessionUser } from "@/lib/auth-session";
 import { deleteListingImage, saveListingImage } from "@/lib/storage/local";
+import { publicUrlForKey } from "@/lib/storage/public-url";
 import * as repo from "@/modules/listings/repository";
 import { resolveOwnedListing } from "@/modules/listings/seller-service";
 
@@ -52,7 +54,7 @@ export async function POST(request: Request, ctx: Ctx) {
       {
         image: {
           id: image.id,
-          url: `/uploads/${saved.objectKey}`,
+          url: publicUrlForKey(saved.objectKey),
           sortOrder: image.sortOrder,
           isPrimary: image.isPrimary,
         },
@@ -74,11 +76,8 @@ export async function POST(request: Request, ctx: Ctx) {
         );
       }
     }
-    console.error("POST images", err);
-    return NextResponse.json(
-      { error: { code: "INTERNAL", message: "Upload failed" } },
-      { status: 500 },
-    );
+    // Maps NOT_FOUND / FORBIDDEN from resolveOwnedListing to 404 / 403.
+    return adminErrorResponse(err, "Upload failed");
   }
 }
 
@@ -112,10 +111,6 @@ export async function DELETE(request: Request, ctx: Ctx) {
         { status: 401 },
       );
     }
-    console.error("DELETE image", err);
-    return NextResponse.json(
-      { error: { code: "INTERNAL", message: "Delete failed" } },
-      { status: 500 },
-    );
+    return adminErrorResponse(err, "Delete failed");
   }
 }

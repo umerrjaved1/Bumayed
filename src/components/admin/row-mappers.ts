@@ -1,6 +1,8 @@
 // Pure row mappers shared by admin server pages and client tables.
 // Kept out of "use client" files so server components can call them.
 
+import { publicUrlForKey } from "@/lib/storage/public-url";
+
 export type AdminUserRow = {
   id: string;
   email: string | null;
@@ -71,7 +73,9 @@ export function mapListingRow(row: Record<string, unknown>): AdminListingRow {
       "—",
     category: category?.nameEn ?? "—",
     location: [city?.nameEn, emirate?.nameEn].filter(Boolean).join(", "),
-    imageUrl: images?.[0]?.objectKey ? `/uploads/${images[0].objectKey}` : null,
+    imageUrl: images?.[0]?.objectKey
+      ? publicUrlForKey(String(images[0].objectKey))
+      : null,
     openReports: reports?.length ?? 0,
   };
 }

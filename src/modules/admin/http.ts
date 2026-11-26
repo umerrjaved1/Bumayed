@@ -17,9 +17,43 @@ const STATUS: Record<string, number> = {
   PROHIBITED_CONTENT: 400,
   INVALID_LINK: 400,
   INVALID_BANNER_SIZE: 400,
+  QUOTA_EXCEEDED: 403,
+  INVALID_CATEGORY: 400,
+  INVALID_EMIRATE: 400,
+  INVALID_CITY: 400,
+  INVALID_VIDEO_URL: 400,
+  NOT_EDITABLE: 409,
+  PAYMENTS_UNAVAILABLE: 503,
+};
+
+/** Prisma error codes that mean bad input, not a server fault. */
+const PRISMA_STATUS: Record<string, [number, string]> = {
+  P2025: [404, "NOT_FOUND"],
+  P2003: [400, "VALIDATION"],
+  P2023: [400, "VALIDATION"],
+  P2007: [400, "VALIDATION"],
+  P2002: [409, "CONFLICT"],
 };
 
 export function adminErrorResponse(err: unknown, fallbackMessage: string) {
+  // request.json() on a malformed body
+  if (err instanceof SyntaxError) {
+    return NextResponse.json(
+      { error: { code: "VALIDATION", message: "Invalid JSON body" } },
+      { status: 400 },
+    );
+  }
+  const prismaCode =
+    err && typeof err === "object" && "code" in err
+      ? String((err as { code: unknown }).code)
+      : null;
+  if (prismaCode && PRISMA_STATUS[prismaCode]) {
+    const [status, code] = PRISMA_STATUS[prismaCode];
+    return NextResponse.json(
+      { error: { code, message: code.replaceAll("_", " ").toLowerCase() } },
+      { status },
+    );
+  }
   if (err instanceof Error) {
     const code = err.message;
     const status = STATUS[code];

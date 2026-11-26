@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { buildQueryString, parseListingQuery } from "@/modules/listings/query";
 import {
   getMakesForCategory,
@@ -39,8 +39,12 @@ export async function CategoryResults({
     searchPublicListings(query),
     getMakesForCategory(category),
   ]);
+  const locale = await getLocale();
   const flat = flatten(searchParams);
-  const basePath = `/${category}`;
+  // Plain <a> links bypass the i18n router, so the locale prefix is added here.
+  const basePath = `/${locale}/${category}`;
+  // Remount the filter forms when the query changes so they never show stale values.
+  const filterKey = JSON.stringify(flat);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -55,13 +59,19 @@ export async function CategoryResults({
         <aside className="hidden lg:block">
           <div className="sticky top-20 rounded-lg border bg-card p-4">
             <h2 className="mb-4 font-semibold">{tr("filtersTitle")}</h2>
-            <FilterForm category={category} makes={makes} values={query} />
+            <FilterForm
+              key={filterKey}
+              category={category}
+              makes={makes}
+              values={query}
+            />
           </div>
         </aside>
 
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <MobileFilterDrawer
+              key={filterKey}
               category={category}
               makes={makes}
               values={query}
@@ -95,6 +105,12 @@ export async function CategoryResults({
             hrefForPage={(p) =>
               `${basePath}${buildQueryString(flat, { page: p })}`
             }
+            labels={{
+              previous: tr("previous"),
+              next: tr("next"),
+              previousPage: tr("previousPage"),
+              nextPage: tr("nextPage"),
+            }}
           />
         </div>
       </div>

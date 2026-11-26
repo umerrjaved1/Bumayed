@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ export function DealerDashboardClient({
   initial: DealerDashboardData;
 }) {
   const t = useTranslations("dealerDashboard");
+  const locale = useLocale();
   const [data, setData] = useState(initial);
   const [pending, startTransition] = useTransition();
   const profile = data.profile;
@@ -138,7 +139,10 @@ export function DealerDashboardClient({
           <div className="mt-2 space-y-1 text-sm text-muted-foreground">
             <p>
               {data.subscription.package.name} · {t("renews")}{" "}
-              {new Date(data.subscription.endsAt).toLocaleDateString()}
+              {new Date(data.subscription.endsAt).toLocaleDateString(
+                locale === "ar" ? "ar-AE" : "en-AE",
+                { timeZone: "Asia/Dubai" },
+              )}
             </p>
             <p>
               {t("slotsUsed", {

@@ -14,7 +14,7 @@
   - English LTR and Arabic RTL, with AED prices, checked at five widths
 
 ## Still open
-- Listing photos will use Cloudflare R2 on umerr.javed1@gmail.com. The upload code is ready; the bucket and API token are not connected yet, so live uploads still fail until those exist
+- Cloudflare R2 bucket `bumayed` stores new listing photos. Owners can open their own ads before a moderator approves them
 - Email delivery, so password-reset links are not received. OTP stays off
 - Not enough listings to show a second search page
 - Client approval of notification copy and the prohibited-listing word list

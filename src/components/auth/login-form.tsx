@@ -9,6 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+/**
+ * Only same-site paths are allowed, so the login page cannot redirect elsewhere.
+ * The locale prefix is removed because the i18n router adds the current one.
+ */
+function safeCallbackPath(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
+    return "/dashboard";
+  }
+  const stripped = raw.replace(/^\/(en|ar)(?=\/|$)/, "");
+  return stripped || "/";
+}
+
 export function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
@@ -34,7 +46,11 @@ export function LoginForm() {
         setError(data?.error?.message ?? t("errors.generic"));
         return;
       }
-      router.push("/dashboard");
+      // Read at submit time; useSearchParams would stop this page from prerendering.
+      const callbackUrl = new URLSearchParams(window.location.search).get(
+        "callbackUrl",
+      );
+      router.push(safeCallbackPath(callbackUrl));
       router.refresh();
     } catch {
       setError(t("errors.generic"));

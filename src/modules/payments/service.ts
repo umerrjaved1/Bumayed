@@ -28,6 +28,17 @@ export function activeProvider(): string {
   return env.PAYMENT_PROVIDER ?? "sandbox";
 }
 
+/** Sandbox payments are free promotions, so production needs an explicit opt-in. */
+export function sandboxPaymentsAllowed(): boolean {
+  return env.NODE_ENV !== "production" || env.ALLOW_SANDBOX_PAYMENTS;
+}
+
+function assertPaymentsAvailable() {
+  if (activeProvider() === "sandbox" && !sandboxPaymentsAllowed()) {
+    throw new Error("PAYMENTS_UNAVAILABLE");
+  }
+}
+
 function meta(payment: { metadata: Prisma.JsonValue }): Record<string, unknown> {
   return (payment.metadata ?? {}) as Record<string, unknown>;
 }
@@ -104,6 +115,7 @@ export async function startPromotionCheckout(input: {
   const price = await prisma.promotionPrice.findUnique({ where: { type: input.type } });
   if (!price || !price.isActive) throw new Error("PRICE_UNAVAILABLE");
 
+  assertPaymentsAvailable();
   const payment = await prisma.payment.create({
     data: {
       userId: input.user.id,
@@ -137,6 +149,7 @@ export async function startPackageCheckout(input: {
   const pkg = await prisma.package.findUnique({ where: { id: input.packageId } });
   if (!pkg || !pkg.isActive) throw new Error("PACKAGE_UNAVAILABLE");
 
+  assertPaymentsAvailable();
   const payment = await prisma.payment.create({
     data: {
       userId: input.user.id,
@@ -326,22 +339,47 @@ async function revokeEntitlement(tx: Prisma.TransactionClient, paymentId: string
   });
 }
 
-export async function assertListingQuota(user: SessionUser) {
-  if (user.role !== Role.DEALER) return;
+const QUOTA_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Start of the current 30-day quota period, counted from the package start. */
+export function quotaPeriodStart(startsAt: Date, now: Date): Date {
+  const elapsed = Math.max(0, now.getTime() - startsAt.getTime());
+  const periods = Math.floor(elapsed / QUOTA_PERIOD_MS);
+  return new Date(startsAt.getTime() + periods * QUOTA_PERIOD_MS);
+}
+
+/**
+ * How many ads a dealer has used this period. Counted from the listings
+ * themselves (ads created this period that were submitted at least once), so
+ * drafts and failed saves do not count, the count resets each period, and
+ * removing an ad does not give the slot back.
+ */
+export async function dealerQuotaUsage(dealerId: string, now = new Date()) {
   const sub = await prisma.subscription.findFirst({
     where: {
-      dealerId: user.id,
+      dealerId,
       status: PromotionStatus.ACTIVE,
-      endsAt: { gt: new Date() },
+      endsAt: { gt: now },
     },
     include: { package: true },
     orderBy: { endsAt: "desc" },
   });
-  const quota = sub?.package.monthlyListingQuota;
-  if (quota == null || !sub) return;
-  if (sub.listingsUsedThisPeriod >= quota) throw new Error("QUOTA_EXCEEDED");
-  await prisma.subscription.update({
-    where: { id: sub.id },
-    data: { listingsUsedThisPeriod: { increment: 1 } },
+  if (!sub) return null;
+  const periodStart = quotaPeriodStart(sub.startsAt, now);
+  const used = await prisma.listing.count({
+    where: {
+      sellerId: dealerId,
+      submittedAt: { not: null },
+      createdAt: { gte: periodStart },
+    },
   });
+  return { quota: sub.package.monthlyListingQuota, used, periodStart };
+}
+
+/** Call before an ad is submitted for the first time. */
+export async function assertListingQuota(user: SessionUser) {
+  if (user.role !== Role.DEALER) return;
+  const usage = await dealerQuotaUsage(user.id);
+  if (!usage || usage.quota == null) return;
+  if (usage.used >= usage.quota) throw new Error("QUOTA_EXCEEDED");
 }

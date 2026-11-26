@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
+import { startNavigationProgress } from "@/components/layout/navigation-progress";
 import type { ListingSort } from "@/modules/listings/types";
 import {
   Select,
@@ -36,6 +37,7 @@ export function SortSelect({
     if (sort && sort !== "newest") params.set("sort", sort);
     else params.delete("sort");
     params.delete("page"); // reset pagination on re-sort
+    startNavigationProgress();
     router.push(`${pathname}?${params.toString()}`);
   }
 

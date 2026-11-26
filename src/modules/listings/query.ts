@@ -22,7 +22,11 @@ function num(v: string | string[] | undefined): number | undefined {
   const s = str(v);
   if (!s) return undefined;
   const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
+  // Database columns are 32-bit integers, so drop fractions and out-of-range
+  // values instead of letting Prisma throw a 500.
+  if (!Number.isFinite(n)) return undefined;
+  const i = Math.trunc(n);
+  return Math.abs(i) <= 2_147_483_647 ? i : undefined;
 }
 
 /** Parse raw URL search params into a typed query (invalid values dropped). */

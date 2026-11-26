@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { adminErrorResponse } from "@/modules/admin/http";
 import { ListingStatus } from "@/generated/prisma/client";
 import { requireSessionUser } from "@/lib/auth-session";
 import { listingWriteSchema } from "@/modules/listings/write-schemas";
@@ -76,10 +77,7 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    console.error("POST /api/seller/listings", err);
-    return NextResponse.json(
-      { error: { code: "INTERNAL", message: "Failed to create listing" } },
-      { status: 500 },
-    );
+    // Maps quota, invalid category/emirate, bad JSON and Prisma input errors to 4xx.
+    return adminErrorResponse(err, "Failed to create listing");
   }
 }

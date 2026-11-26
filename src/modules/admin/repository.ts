@@ -155,7 +155,11 @@ export async function listListingsForAdmin(input: {
   return prisma.listing.findMany({
     where,
     take: input.take ?? 50,
-    orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }],
+    // Nulls last, or drafts sort above pending ads and push them out of the first 50.
+    orderBy: [
+      { submittedAt: { sort: "desc", nulls: "last" } },
+      { createdAt: "desc" },
+    ],
     include: {
       seller: { include: { profile: true, dealerProfile: true } },
       category: true,

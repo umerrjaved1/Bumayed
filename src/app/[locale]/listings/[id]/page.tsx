@@ -11,10 +11,13 @@ import {
   Phone,
   Ship,
 } from "lucide-react";
+import { auth } from "@/auth";
+import { isFavorited } from "@/modules/listings/repository";
 import {
-  getPublicListingBySlug,
   getSimilarListings,
+  getVisibleListingBySlug,
 } from "@/modules/listings/service";
+import { privateRobots, siteUrl } from "@/lib/seo";
 import { parseVideoUrl } from "@/lib/video";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +29,7 @@ import { ShareButton } from "@/components/shared/share-button";
 import { ReportDialog } from "@/components/shared/report-dialog";
 import { FavoriteButton } from "@/components/shared/favorite-button";
 import { ListingCard } from "@/components/shared/listing-card";
+import { ListingGallery } from "@/components/shared/listing-gallery";
 import { publicMetadata } from "@/lib/seo";
 
 const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
@@ -38,16 +42,22 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  const listing = await getPublicListingBySlug(id);
-  if (!listing) return {};
+  const session = await auth();
+  const viewer = session?.user?.id
+    ? { id: session.user.id, role: session.user.role }
+    : null;
+  const visible = await getVisibleListingBySlug(id, viewer);
+  if (!visible) return {};
+  const listing = visible.listing;
   const description = listing.description.slice(0, 160);
-  return publicMetadata({
+  const meta = publicMetadata({
     locale,
     path: `/listings/${listing.slug}`,
     title: listing.title,
     description,
     image: listing.photos[0] ?? null,
   });
+  return visible.preview ? { ...meta, ...privateRobots } : meta;
 }
 
 export default async function ListingDetailPage({
@@ -56,14 +66,30 @@ export default async function ListingDetailPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { id } = await params;
-  const listing = await getPublicListingBySlug(id);
-  if (!listing) notFound();
+  const session = await auth();
+  const viewer = session?.user?.id
+    ? { id: session.user.id, role: session.user.role }
+    : null;
+  const visible = await getVisibleListingBySlug(id, viewer);
+  if (!visible) notFound();
+  const listing = visible.listing;
+  const favorited = viewer ? await isFavorited(viewer.id, listing.id) : false;
 
   const t = await getTranslations("detail");
   const tf = await getTranslations("filters");
   const te = await getTranslations("emirates");
   const tl = await getTranslations("listing");
   const activeLocale = await getLocale();
+  const previewMessage =
+    visible.status === "PENDING"
+      ? t("previewPending")
+      : visible.status === "DRAFT"
+        ? t("previewDraft")
+        : visible.status === "REJECTED"
+          ? t("previewRejected")
+          : visible.preview
+            ? t("previewHidden")
+            : null;
 
   const Icon = CATEGORY_ICONS[listing.category];
   const video = listing.videoUrl ? parseVideoUrl(listing.videoUrl) : null;
@@ -76,7 +102,12 @@ export default async function ListingDetailPage({
     ...(listing.trim ? [{ label: t("trim"), value: listing.trim }] : []),
     { label: t("year"), value: String(listing.year) },
     ...(listing.mileageKm != null
-      ? [{ label: t("mileage"), value: `${nf.format(listing.mileageKm)} ${t("km")}` }]
+      ? [
+          {
+            label: t("mileage"),
+            value: `${nf.format(listing.mileageKm)} ${t("km")}`,
+          },
+        ]
       : []),
     ...(listing.transmission
       ? [{ label: tf("transmission"), value: tf(listing.transmission) }]
@@ -87,10 +118,17 @@ export default async function ListingDetailPage({
     ...(listing.regionalSpec
       ? [{ label: tf("regionalSpec"), value: tf(listing.regionalSpec) }]
       : []),
-    ...(listing.bodyType ? [{ label: t("bodyType"), value: listing.bodyType }] : []),
+    ...(listing.bodyType
+      ? [{ label: t("bodyType"), value: listing.bodyType }]
+      : []),
     ...(listing.colour ? [{ label: t("colour"), value: listing.colour }] : []),
     ...(listing.engineCc
-      ? [{ label: t("engineCc"), value: `${nf.format(listing.engineCc)} ${t("cc")}` }]
+      ? [
+          {
+            label: t("engineCc"),
+            value: `${nf.format(listing.engineCc)} ${t("cc")}`,
+          },
+        ]
       : []),
     ...(listing.motoType
       ? [{ label: tf("motoType"), value: tf(listing.motoType) }]
@@ -99,7 +137,12 @@ export default async function ListingDetailPage({
       ? [{ label: tf("boatType"), value: tf(listing.boatType) }]
       : []),
     ...(listing.lengthFt
-      ? [{ label: t("lengthFt"), value: `${nf.format(listing.lengthFt)} ${t("ft")}` }]
+      ? [
+          {
+            label: t("lengthFt"),
+            value: `${nf.format(listing.lengthFt)} ${t("ft")}`,
+          },
+        ]
       : []),
     ...(listing.engineHours
       ? [
@@ -130,8 +173,33 @@ export default async function ListingDetailPage({
     { dateStyle: "medium" },
   ).format(new Date(listing.createdAt));
 
+  const cityName = activeLocale === "ar" ? listing.cityAr : listing.city;
+  const telHref = `tel:+${listing.seller.phone}`;
+  const whatsappHref = `https://wa.me/${listing.seller.whatsapp}?text=${encodeURIComponent(
+    t("whatsappMessage", {
+      title: listing.title,
+      url: `${siteUrl()}/${activeLocale}/listings/${listing.slug}`,
+    }),
+  )}`;
+  const badges =
+    listing.featured || listing.urgent ? (
+      <>
+        {listing.featured && (
+          <Badge className="bg-accent text-accent-foreground">
+            {tl("featured")}
+          </Badge>
+        )}
+        {listing.urgent && <Badge variant="destructive">{tl("urgent")}</Badge>}
+      </>
+    ) : null;
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 pt-8 pb-28 sm:px-6 lg:px-8 lg:pb-8">
+      {previewMessage && (
+        <p className="mb-6 rounded-lg border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          {previewMessage}
+        </p>
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -156,43 +224,25 @@ export default async function ListingDetailPage({
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         {/* Main column */}
         <div>
-          {/* Gallery — placeholders until image pipeline (Phase 5) */}
-          <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary/85 to-primary">
-            {listing.photos[0] ? (
-              // Local uploads are served as static files; first image is the LCP candidate.
-              <img
-                src={listing.photos[0]}
-                alt={listing.title}
-                className="size-full object-cover"
-                fetchPriority="high"
+          {listing.photos.length > 0 ? (
+            <ListingGallery
+              photos={listing.photos}
+              title={listing.title}
+              badges={badges}
+            />
+          ) : (
+            <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary/85 to-primary">
+              <Icon
+                className="size-20 text-primary-foreground/40"
+                aria-hidden
               />
-            ) : (
-              <Icon className="size-20 text-primary-foreground/40" aria-hidden />
-            )}
-            <div className="absolute start-3 top-3 flex gap-1.5">
-              {listing.featured && (
-                <Badge className="bg-accent text-accent-foreground">
-                  {tl("featured")}
-                </Badge>
+              {badges && (
+                <div className="absolute start-3 top-3 flex gap-1.5">
+                  {badges}
+                </div>
               )}
-              {listing.urgent && <Badge variant="destructive">{tl("urgent")}</Badge>}
             </div>
-          </div>
-          <div className="mt-2 grid grid-cols-6 gap-2">
-            {listing.photos.slice(0, 6).map((src, i) => (
-              <div
-                key={src}
-                className={`overflow-hidden rounded border bg-muted ${i === 0 ? "ring-2 ring-accent" : ""}`}
-              >
-                <img
-                  src={src}
-                  alt={`${listing.title} ${i + 1}`}
-                  className="aspect-video size-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
+          )}
 
           {/* Title / price / actions */}
           <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
@@ -209,9 +259,13 @@ export default async function ListingDetailPage({
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="size-4" aria-hidden />
-                  {listing.city.toLowerCase() === te(listing.emirate).toLowerCase()
+                  {cityName === te(listing.emirate) ||
+                  listing.city.toLowerCase() ===
+                    listing.emirate.toLowerCase() ||
+                  listing.city.toLowerCase() ===
+                    te(listing.emirate).toLowerCase()
                     ? te(listing.emirate)
-                    : `${listing.city}, ${te(listing.emirate)}`}
+                    : `${cityName}${activeLocale === "ar" ? "، " : ", "}${te(listing.emirate)}`}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="size-4" aria-hidden />
@@ -220,9 +274,16 @@ export default async function ListingDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <FavoriteButton listingId={listing.id} />
+              <FavoriteButton
+                key={listing.id}
+                listingId={listing.id}
+                initial={favorited}
+              />
               <ShareButton title={listing.title} />
-              <ReportDialog listingId={listing.id} />
+              <ReportDialog
+                listingId={listing.id}
+                requireGuestContact={!session?.user?.id}
+              />
             </div>
           </div>
 
@@ -258,7 +319,17 @@ export default async function ListingDetailPage({
                   />
                 </div>
               ) : (
-                <Button variant="outline" className="mt-4" render={<a href={video.watchUrl} target="_blank" rel="noopener noreferrer" />}>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  render={
+                    <a
+                      href={video.watchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
+                >
                   <ExternalLink className="size-4" aria-hidden />
                   {t("watchOn", { provider: video.provider })}
                 </Button>
@@ -281,7 +352,10 @@ export default async function ListingDetailPage({
                   <p className="flex items-center gap-1.5 font-semibold">
                     {listing.seller.dealerName ?? listing.seller.name}
                     {listing.seller.verified && (
-                      <BadgeCheck className="size-4 text-success" aria-label={t("verified")} />
+                      <BadgeCheck
+                        className="size-4 text-success"
+                        aria-label={t("verified")}
+                      />
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -291,7 +365,7 @@ export default async function ListingDetailPage({
                 </div>
               </div>
               <div className="mt-6 flex flex-col gap-2">
-                <Button size="lg" render={<a href={`tel:+${listing.seller.phone}`} />}>
+                <Button size="lg" render={<a href={telHref} />}>
                   <Phone className="size-4" aria-hidden />
                   {t("call")}
                 </Button>
@@ -301,7 +375,7 @@ export default async function ListingDetailPage({
                   className="border-success text-success hover:bg-success/10"
                   render={
                     <a
-                      href={`https://wa.me/${listing.seller.whatsapp}`}
+                      href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
                     />
@@ -318,10 +392,41 @@ export default async function ListingDetailPage({
         </aside>
       </div>
 
+      {/* Mobile: contact stays one tap away while scrolling */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-xl items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <PriceDisplay amountAed={listing.priceAed} className="text-lg" />
+            <p className="truncate text-xs text-muted-foreground">
+              {listing.seller.dealerName ?? listing.seller.name}
+            </p>
+          </div>
+          <Button size="lg" className="h-11" render={<a href={telHref} />}>
+            <Phone className="size-4" aria-hidden />
+            {t("call")}
+          </Button>
+          <Button
+            size="lg"
+            className="h-11 bg-[#25D366] text-white hover:bg-[#1ebe5b]"
+            render={
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
+            {t("whatsapp")}
+          </Button>
+        </div>
+      </div>
+
       {/* Similar listings */}
       {similar.length > 0 && (
         <section className="mt-12">
-          <h2 className="text-2xl font-semibold tracking-tight">{t("similar")}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {t("similar")}
+          </h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {similar.map((l) => (
               <ListingCard key={l.slug} listing={l} />

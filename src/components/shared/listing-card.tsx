@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { Car, CircleGauge, MapPin, Ship } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -22,15 +23,16 @@ export function ListingCard({ listing }: { listing: ListingPublicDto }) {
 
   return (
     <Link href={`/listings/${listing.slug}`} className="group block">
-      <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow group-hover:shadow-md">
-        {/* Photo area — placeholder until image pipeline (Phase 5) */}
+      <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow group-hover:shadow-md group-active:scale-[0.99]">
+        {/* Photo area: resized per screen by next/image */}
         <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-primary/85 to-primary">
           {listing.photos[0] ? (
-            <img
+            <Image
               src={listing.photos[0]}
               alt={listing.title}
-              className="size-full object-cover"
-              loading="lazy"
+              fill
+              sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 100vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             />
           ) : (
             <>

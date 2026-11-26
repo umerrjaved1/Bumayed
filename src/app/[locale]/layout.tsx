@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import "../globals.css";
 
 const inter = Inter({
@@ -74,6 +75,7 @@ export default async function LocaleLayout({
       <body className="flex min-h-screen flex-col antialiased">
         <NextIntlClientProvider>
           <TooltipProvider>
+            <NavigationProgress />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-foreground"

@@ -44,7 +44,19 @@ export function LanguageSwitcher() {
             key={l}
             disabled={l === locale}
             onClick={() =>
-              startTransition(() => router.replace(pathname, { locale: l }))
+              startTransition(() =>
+                // Keep filters, sort and page when switching language.
+                router.replace(
+                  {
+                    pathname,
+                    // Read at click time; useSearchParams would stop pages from prerendering.
+                    query: Object.fromEntries(
+                      new URLSearchParams(window.location.search),
+                    ),
+                  },
+                  { locale: l },
+                ),
+              )
             }
           >
             {LOCALE_LABELS[l]}

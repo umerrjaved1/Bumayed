@@ -89,6 +89,7 @@ export function toPublicDto(row: ListingRow): ListingPublicDto {
     trim: row.trim?.nameEn,
     emirate: row.emirate.code as EmirateCode,
     city: row.city.nameEn,
+    cityAr: row.city.nameAr,
     condition: (lower(specs.condition) as "new" | "used") ?? "used",
     description: row.description,
     photoCount: row.images.length,

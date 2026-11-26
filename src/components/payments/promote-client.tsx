@@ -51,7 +51,7 @@ export function PromoteClient({
           <div>
             <p className="font-medium">{t(`types.${o.type}`)}</p>
             <p className="text-sm text-muted-foreground">
-              AED {o.priceAed.toLocaleString()} · {o.durationDays} {t("days")}
+              AED {o.priceAed.toLocaleString("en-AE")} · {o.durationDays} {t("days")}
             </p>
           </div>
           <Button disabled={busy === o.type} onClick={() => void buy(o.type)}>

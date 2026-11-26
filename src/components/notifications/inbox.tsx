@@ -17,11 +17,12 @@ export function Inbox({
   const [rows, setRows] = useState(items);
 
   async function mark(id: string) {
-    await fetch("/api/notifications", {
+    const res = await fetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
-    });
+    }).catch(() => null);
+    if (!res?.ok) return;
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, read: true } : r)));
   }
 

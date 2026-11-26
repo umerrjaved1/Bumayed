@@ -11,6 +11,12 @@ export async function notifyListingEvent(input: {
   title: string;
   status: "PENDING" | "ACTIVE" | "REJECTED" | "EXPIRED" | "EXPIRY_SOON";
   reason?: string | null;
+  /**
+   * When this cycle started (submittedAt, approvedAt, rejectedAt or expiresAt).
+   * Part of the dedup key, so a second rejection or a renewal's expiry is
+   * still sent while retries of the same event are not.
+   */
+  cycleAt?: Date | null;
 }) {
   const map = {
     PENDING: NotificationType.LISTING_SUBMITTED,
@@ -24,7 +30,7 @@ export async function notifyListingEvent(input: {
   return notify({
     userId: input.sellerId,
     type,
-    dedupKey: `${type}:${input.listingId}:${input.status === "EXPIRY_SOON" ? "soon" : input.status}`,
+    dedupKey: `${type}:${input.listingId}:${input.status === "EXPIRY_SOON" ? "soon" : input.status}:${input.cycleAt?.toISOString() ?? "-"}`,
     copy: {
       titleEn: `Listing update: ${input.title}`,
       titleAr: `تحديث الإعلان: ${input.title}`,
@@ -56,13 +62,14 @@ export async function notifyPaymentResult(input: {
 
 /** Expiry warnings, expired listings, and package expiry. Safe to run repeatedly. */
 export async function sweepExpiryNotifications(now = new Date()) {
+  const backfilled = await backfillMissingExpiry(now);
   const soon = new Date(now.getTime() + SOON_MS);
   const expiring = await prisma.listing.findMany({
     where: {
       status: ListingStatus.ACTIVE,
       expiresAt: { gt: now, lte: soon },
     },
-    select: { id: true, sellerId: true, title: true },
+    select: { id: true, sellerId: true, title: true, expiresAt: true },
     take: 100,
   });
   for (const row of expiring) {
@@ -71,12 +78,13 @@ export async function sweepExpiryNotifications(now = new Date()) {
       listingId: row.id,
       title: row.title,
       status: "EXPIRY_SOON",
+      cycleAt: row.expiresAt,
     });
   }
 
   const expired = await prisma.listing.findMany({
     where: { status: ListingStatus.ACTIVE, expiresAt: { lte: now } },
-    select: { id: true, sellerId: true, title: true, status: true },
+    select: { id: true, sellerId: true, title: true, status: true, expiresAt: true },
     take: 100,
   });
   for (const row of expired) {
@@ -90,6 +98,7 @@ export async function sweepExpiryNotifications(now = new Date()) {
       listingId: row.id,
       title: row.title,
       status: "EXPIRED",
+      cycleAt: row.expiresAt,
     });
   }
 
@@ -116,6 +125,7 @@ export async function sweepExpiryNotifications(now = new Date()) {
   }
 
   return {
+    backfilled,
     expiring: expiring.length,
     expired: expired.length,
     packages: packages.length,
@@ -129,4 +139,26 @@ function assertCanExpire(status: ListingStatus) {
   } catch {
     return false;
   }
+}
+
+const RUN_MS = 60 * 24 * 60 * 60 * 1000;
+const GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Ads approved before approval set an expiry date have none, so they never
+ * expired. Give each one 60 days from approval, but at least 7 days from now
+ * so the seller still gets the 3-day warning before it ends.
+ */
+async function backfillMissingExpiry(now: Date): Promise<number> {
+  const rows = await prisma.listing.findMany({
+    where: { status: ListingStatus.ACTIVE, expiresAt: null },
+    select: { id: true, approvedAt: true, createdAt: true },
+    take: 500,
+  });
+  for (const row of rows) {
+    const from = (row.approvedAt ?? row.createdAt).getTime();
+    const expiresAt = new Date(Math.max(from + RUN_MS, now.getTime() + GRACE_MS));
+    await prisma.listing.update({ where: { id: row.id }, data: { expiresAt } });
+  }
+  return rows.length;
 }

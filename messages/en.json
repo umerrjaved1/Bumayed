@@ -123,7 +123,11 @@
     "count": "{count, plural, =0 {No results} one {# result} other {# results}}",
     "noResultsTitle": "No listings match your filters",
     "noResultsBody": "Try widening your search or clearing some filters.",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "previous": "Previous",
+    "next": "Next",
+    "previousPage": "Go to previous page",
+    "nextPage": "Go to next page"
   },
   "detail": {
     "specs": "Specifications",
@@ -147,6 +151,10 @@
     "warrantyYes": "Yes",
     "warrantyNo": "No",
     "postedOn": "Posted {date}",
+    "previewPending": "This ad is waiting for review. Buyers cannot see it yet.",
+    "previewDraft": "This ad is still a draft. Buyers cannot see it yet.",
+    "previewRejected": "This ad was not approved. Buyers cannot see it.",
+    "previewHidden": "This ad is not public. Buyers cannot see it.",
     "individual": "Individual",
     "dealer": "Dealer",
     "memberSince": "Member since {year}",
@@ -176,7 +184,12 @@
     },
     "video": "Video",
     "watchOn": "Watch on {provider}",
-    "similar": "Similar listings"
+    "similar": "Similar listings",
+    "openPhoto": "Open photo {n} of {total}",
+    "prevPhoto": "Previous photo",
+    "nextPhoto": "Next photo",
+    "closePhoto": "Close photo viewer",
+    "whatsappMessage": "Hi, I'm interested in your {title} on Bumayed: {url}"
   },
   "content": {
     "draftNotice": "Draft content — pending client approval before launch.",
@@ -516,7 +529,7 @@
     "city": "City",
     "phone": "Contact phone",
     "photos": "Photos",
-    "photosHint": "JPEG, PNG or WebP. Images are stored locally until object storage is configured.",
+    "photosHint": "JPEG, PNG or WebP.",
     "videoUrl": "Social video URL (optional)",
     "videoHint": "One YouTube, Instagram or TikTok link.",
     "select": "Select…",
@@ -527,6 +540,10 @@
     "submitting": "Submitting…",
     "submitHint": "Submitted ads stay pending until a moderator approves them.",
     "error": "Could not save listing. Check required fields.",
+    "titleTooShort": "Title must be at least 8 characters.",
+    "descriptionTooShort": "Description must be at least 20 characters.",
+    "priceRequired": "Enter a price greater than 0.",
+    "cityRequired": "Choose a city.",
     "uploadError": "Image upload failed."
   },
   "sellerListings": {

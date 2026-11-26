@@ -12,6 +12,12 @@ type PaginationControlsProps = {
   totalPages: number;
   /** Base path with current filters serialized, e.g. `/cars?make=Nissan` */
   hrefForPage: (page: number) => string;
+  labels: {
+    previous: string;
+    next: string;
+    previousPage: string;
+    nextPage: string;
+  };
 };
 
 /** Server-rendered pagination — plain links so pages are bookmarkable (§6.2). */
@@ -19,6 +25,7 @@ export function PaginationControls({
   page,
   totalPages,
   hrefForPage,
+  labels,
 }: PaginationControlsProps) {
   if (totalPages <= 1) return null;
 
@@ -34,7 +41,12 @@ export function PaginationControls({
       <PaginationContent>
         {page > 1 && (
           <PaginationItem>
-            <PaginationPrevious href={hrefForPage(page - 1)} />
+            <PaginationPrevious
+              href={hrefForPage(page - 1)}
+              text={labels.previous}
+              aria-label={labels.previousPage}
+              className="[&_svg]:rtl:rotate-180"
+            />
           </PaginationItem>
         )}
         {sorted.map((p, i) => (
@@ -53,7 +65,12 @@ export function PaginationControls({
         ))}
         {page < totalPages && (
           <PaginationItem>
-            <PaginationNext href={hrefForPage(page + 1)} />
+            <PaginationNext
+              href={hrefForPage(page + 1)}
+              text={labels.next}
+              aria-label={labels.nextPage}
+              className="[&_svg]:rtl:rotate-180"
+            />
           </PaginationItem>
         )}
       </PaginationContent>

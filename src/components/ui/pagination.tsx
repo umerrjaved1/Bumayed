@@ -2,6 +2,7 @@ import * as React from "react"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import NextLink from "next/link"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
@@ -50,12 +51,14 @@ function PaginationLink({
       size={size}
       className={cn(className)}
       nativeButton={false}
+      // Client-side navigation: no full page reload between result pages.
       render={
-        <a
+        <NextLink
           aria-current={isActive ? "page" : undefined}
           data-slot="pagination-link"
           data-active={isActive}
           {...props}
+          href={props.href ?? "#"}
         />
       }
     />

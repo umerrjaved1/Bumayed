@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authenticateCredentials } from "@/modules/auth/service";
+import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/modules/auth/schemas";
 import {
   AccountDisabled,
@@ -15,6 +16,8 @@ import {
  * validated against user status on each refresh. Session revocation for
  * suspended/blocked accounts is enforced in the jwt callback.
  */
+const SESSION_RECHECK_MS = 5 * 60 * 1000;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
@@ -73,6 +76,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = user.role;
         token.status = user.status;
         token.phone = user.phone ?? null;
+        token.checkedAt = Date.now();
+        return token;
+      }
+      // Re-read role and status every few minutes so suspensions, blocks and
+      // role changes apply to existing sessions instead of after 30 days.
+      const checkedAt = typeof token.checkedAt === "number" ? token.checkedAt : 0;
+      if (token.id && Date.now() - checkedAt > SESSION_RECHECK_MS) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, status: true, phone: true },
+        });
+        if (!fresh || fresh.status === "SUSPENDED" || fresh.status === "BLOCKED") {
+          return null;
+        }
+        token.role = fresh.role;
+        token.status = fresh.status;
+        token.phone = fresh.phone ?? null;
+        token.checkedAt = Date.now();
       }
       return token;
     },
