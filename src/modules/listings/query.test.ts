@@ -44,3 +44,20 @@ describe("buildQueryString", () => {
     ).toBe("?page=1&sort=priceAsc");
   });
 });
+
+describe("parseListingQuery ranges", () => {
+  it("swaps a min price above the max price", () => {
+    const q = parseListingQuery(
+      { priceMin: "300000", priceMax: "100000" },
+      "cars",
+    );
+    expect([q.priceMin, q.priceMax]).toEqual([100000, 300000]);
+  });
+
+  it("swaps an inverted year range and keeps one-sided ranges", () => {
+    const q = parseListingQuery({ yearMin: "2024", yearMax: "2020" }, "cars");
+    expect([q.yearMin, q.yearMax]).toEqual([2020, 2024]);
+    const one = parseListingQuery({ priceMin: "5000" }, "cars");
+    expect([one.priceMin, one.priceMax]).toEqual([5000, undefined]);
+  });
+});

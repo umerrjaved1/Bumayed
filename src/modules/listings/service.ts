@@ -39,7 +39,11 @@ export async function getPublicListingBySlug(
 export async function getVisibleListingBySlug(
   slug: string,
   user: SessionUser | null,
-): Promise<{ listing: ListingPublicDto; status: ListingStatus; preview: boolean } | null> {
+): Promise<{
+  listing: ListingPublicDto;
+  status: ListingStatus;
+  preview: boolean;
+} | null> {
   const row = await repo.findBySlug(slug);
   if (!row || row.status === ListingStatus.REMOVED) return null;
   const preview = row.status !== ListingStatus.ACTIVE;
@@ -54,7 +58,9 @@ export async function getFeaturedListings(
   return rows.map(toPublicDto);
 }
 
-export async function getLatestListings(limit = 6): Promise<ListingPublicDto[]> {
+export async function getLatestListings(
+  limit = 6,
+): Promise<ListingPublicDto[]> {
   const rows = await repo.findLatest(limit);
   return rows.map(toPublicDto);
 }
@@ -70,6 +76,26 @@ export async function getSimilarListings(
 
 export async function getMakesForCategory(category: VehicleCategoryCode) {
   return repo.findMakesForCategory(category);
+}
+
+/** Makes with at least one live ad (for "Popular makes" links). */
+export async function getMakesWithListings(category: VehicleCategoryCode) {
+  return repo.findMakesWithActiveListings(category);
+}
+
+const ALL_CATEGORIES: VehicleCategoryCode[] = ["cars", "motorcycles", "boats"];
+
+/**
+ * When a keyword finds nothing in one category, report the other categories
+ * where it does match (for example "harley" searched under Cars).
+ */
+export async function getKeywordMatchesElsewhere(
+  keyword: string,
+  current: VehicleCategoryCode,
+) {
+  const others = ALL_CATEGORIES.filter((c) => c !== current);
+  const counts = await repo.countKeywordMatches(keyword, others);
+  return counts.filter((c) => c.count > 0);
 }
 
 /**
@@ -142,7 +168,8 @@ export async function transitionListing(input: {
           : input.to === ListingStatus.REJECTED
             ? updated.rejectedAt
             : updated.expiresAt;
-    const { notifyListingEvent } = await import("@/modules/notifications/events");
+    const { notifyListingEvent } =
+      await import("@/modules/notifications/events");
     await notifyListingEvent({
       sellerId: updated.sellerId,
       listingId: updated.id,

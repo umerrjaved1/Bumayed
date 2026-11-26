@@ -8,11 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export function RegisterForm() {
+export function RegisterForm({
+  initialType = "individual",
+}: {
+  /** "dealer" when arriving from "Explore dealer packages" (?type=dealer). */
+  initialType?: "individual" | "dealer";
+}) {
   const t = useTranslations("auth");
   const router = useRouter();
   const [accountType, setAccountType] = useState<"individual" | "dealer">(
-    "individual",
+    initialType,
   );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -67,9 +72,14 @@ export function RegisterForm() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div
+        role="group"
+        aria-label={t("accountType")}
+        className="grid grid-cols-2 gap-2"
+      >
         <Button
           type="button"
+          aria-pressed={accountType === "individual"}
           variant={accountType === "individual" ? "default" : "outline"}
           onClick={() => setAccountType("individual")}
         >
@@ -77,12 +87,16 @@ export function RegisterForm() {
         </Button>
         <Button
           type="button"
+          aria-pressed={accountType === "dealer"}
           variant={accountType === "dealer" ? "default" : "outline"}
           onClick={() => setAccountType("dealer")}
         >
           {t("dealer")}
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {accountType === "dealer" ? t("dealerHint") : t("individualHint")}
+      </p>
 
       <div className="space-y-2">
         <Label htmlFor="displayName">{t("displayName")}</Label>
@@ -106,10 +120,14 @@ export function RegisterForm() {
           id="phone"
           name="phone"
           type="tel"
-          placeholder="+971501234567"
+          inputMode="tel"
+          dir="ltr"
           autoComplete="tel"
+          aria-describedby="phone-hint"
         />
-        <p className="text-xs text-muted-foreground">{t("emailOrPhoneHint")}</p>
+        <p id="phone-hint" className="text-xs text-muted-foreground">
+          {t("emailOrPhoneHint")}
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">{t("password")}</Label>
@@ -120,7 +138,47 @@ export function RegisterForm() {
           autoComplete="new-password"
           required
           minLength={8}
+          maxLength={128}
+          aria-describedby="password-hint"
         />
+        <p id="password-hint" className="text-xs text-muted-foreground">
+          {t("passwordHint")}
+        </p>
+      </div>
+
+      <div className="flex items-start gap-2">
+        <input
+          id="acceptTerms"
+          name="acceptTerms"
+          type="checkbox"
+          required
+          className="mt-0.5 size-4 shrink-0 accent-primary"
+        />
+        <Label
+          htmlFor="acceptTerms"
+          className="text-sm leading-snug font-normal"
+        >
+          <span>
+            {t.rich("acceptTerms", {
+              terms: (chunks) => (
+                <Link
+                  href="/terms"
+                  className="font-medium text-primary underline"
+                >
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link
+                  href="/privacy"
+                  className="font-medium text-primary underline"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </span>
+        </Label>
       </div>
 
       <Button type="submit" className="w-full" disabled={pending || !!success}>

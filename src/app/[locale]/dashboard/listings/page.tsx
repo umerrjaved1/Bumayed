@@ -13,6 +13,9 @@ export default async function SellerListingsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const session = await auth();
-  if (!session?.user) redirect(`/${locale}/auth/login`);
+  if (!session?.user)
+    redirect(
+      `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard/listings`)}`,
+    );
   return <SellerListings />;
 }

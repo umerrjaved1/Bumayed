@@ -18,6 +18,12 @@ export function FavoriteButton({
   const [on, setOn] = useState(initial);
   const [pending, setPending] = useState(false);
 
+  // Send guests to log in, then bring them back to this ad.
+  function goToLogin() {
+    const back = window.location.pathname + window.location.search;
+    router.push(`/auth/login?callbackUrl=${encodeURIComponent(back)}`);
+  }
+
   async function toggle() {
     setPending(true);
     try {
@@ -27,7 +33,7 @@ export function FavoriteButton({
           { method: "DELETE" },
         );
         if (res.status === 401) {
-          router.push("/auth/login");
+          goToLogin();
           return;
         }
         if (res.ok) setOn(false);
@@ -38,7 +44,7 @@ export function FavoriteButton({
           body: JSON.stringify({ listingId }),
         });
         if (res.status === 401) {
-          router.push("/auth/login");
+          goToLogin();
           return;
         }
         if (res.ok) setOn(true);
@@ -57,7 +63,9 @@ export function FavoriteButton({
       aria-pressed={on}
       aria-label={on ? t("remove") : t("add")}
     >
-      <Heart className={on ? "size-4 fill-current text-destructive" : "size-4"} />
+      <Heart
+        className={on ? "size-4 fill-current text-destructive" : "size-4"}
+      />
       {on ? t("saved") : t("save")}
     </Button>
   );

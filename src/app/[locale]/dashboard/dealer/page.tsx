@@ -15,7 +15,9 @@ export default async function DealerDashboardPage({
   setRequestLocale(locale);
   const session = await auth();
   if (!session?.user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(
+      `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard/dealer`)}`,
+    );
   }
   if (session.user.role !== "DEALER" && session.user.role !== "SUPER_ADMIN") {
     redirect(`/${locale}/dashboard`);

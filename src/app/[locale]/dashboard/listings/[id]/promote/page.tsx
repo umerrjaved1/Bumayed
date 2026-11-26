@@ -15,7 +15,10 @@ export default async function PromotePage({
   const { locale, id } = await params;
   setRequestLocale(locale);
   const session = await auth();
-  if (!session?.user) redirect(`/${locale}/auth/login`);
+  if (!session?.user)
+    redirect(
+      `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard/listings/${id}/promote`)}`,
+    );
 
   const listing = await prisma.listing.findUnique({ where: { id } });
   if (!listing || listing.sellerId !== session.user.id) notFound();

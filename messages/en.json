@@ -27,7 +27,7 @@
   },
   "home": {
     "heroTitle": "Find your next car, motorcycle or boat in the UAE",
-    "heroSubtitle": "Browse thousands of verified listings across all seven emirates.",
+    "heroSubtitle": "Browse moderated ads from dealers and private sellers across all seven emirates.",
     "browseCategories": "Browse categories",
     "featuredAds": "Featured ads",
     "latestAds": "Latest ads",
@@ -127,7 +127,8 @@
     "previous": "Previous",
     "next": "Next",
     "previousPage": "Go to previous page",
-    "nextPage": "Go to next page"
+    "nextPage": "Go to next page",
+    "foundElsewhere": "{count, plural, one {# match} other {# matches}} in {category}"
   },
   "detail": {
     "specs": "Specifications",
@@ -189,7 +190,8 @@
     "prevPhoto": "Previous photo",
     "nextPhoto": "Next photo",
     "closePhoto": "Close photo viewer",
-    "whatsappMessage": "Hi, I'm interested in your {title} on Bumayed: {url}"
+    "whatsappMessage": "Hi, I'm interested in your {title} on Bumayed: {url}",
+    "shareManual": "Copy this link to share the ad"
   },
   "content": {
     "draftNotice": "Draft content — pending client approval before launch.",
@@ -257,14 +259,15 @@
   },
   "meta": {
     "homeTitle": "Bumayed — UAE Motors Marketplace",
-    "homeDescription": "Buy and sell cars, motorcycles and boats in the UAE. Bilingual, in English and Arabic."
+    "homeDescription": "Buy and sell cars, motorcycles and boats in the UAE. Bilingual, in English and Arabic.",
+    "brand": "Bumayed"
   },
   "auth": {
     "signIn": "Sign in",
     "signInSubtitle": "Use your email or mobile number and password.",
     "signingIn": "Signing in…",
     "createAccount": "Create account",
-    "registerSubtitle": "Register with email or mobile — both are optional as long as one is provided.",
+    "registerSubtitle": "Sign up with your email address or mobile number.",
     "creating": "Creating…",
     "registerSuccess": "Account created. Check your email to verify if you registered with email.",
     "identifier": "Email or mobile",
@@ -299,7 +302,12 @@
     "haveAccount": "Already have an account?",
     "errors": {
       "generic": "Something went wrong. Please try again."
-    }
+    },
+    "accountType": "Account type",
+    "individualHint": "For people selling their own vehicle.",
+    "dealerHint": "For showrooms and businesses. Dealer packages unlock more ads and featured slots.",
+    "passwordHint": "At least 8 characters.",
+    "acceptTerms": "I agree to the <terms>Terms & Conditions</terms> and <privacy>Privacy Policy</privacy>."
   },
   "dashboard": {
     "title": "Seller dashboard",

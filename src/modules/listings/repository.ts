@@ -8,6 +8,7 @@ import {
   type ListingSort,
   type VehicleCategoryCode,
 } from "./types";
+import { keywordTerms, termVariants } from "./keyword";
 
 const publicInclude = {
   category: true,
@@ -51,6 +52,24 @@ function upper(v: string | undefined): string | undefined {
   return v ? v.toUpperCase() : undefined;
 }
 
+/**
+ * One condition per keyword word: each word (or one of its spelling variants)
+ * must appear in the title, description, or the make/model name in English
+ * or Arabic. So "land cruiser", "G63" and "تويوتا" all find their ads.
+ */
+function keywordWhere(keyword: string): Prisma.ListingWhereInput[] {
+  return keywordTerms(keyword).map((term) => ({
+    OR: termVariants(term).flatMap((v) => [
+      { title: { contains: v, mode: "insensitive" as const } },
+      { description: { contains: v, mode: "insensitive" as const } },
+      { make: { nameEn: { contains: v, mode: "insensitive" as const } } },
+      { make: { nameAr: { contains: v, mode: "insensitive" as const } } },
+      { model: { nameEn: { contains: v, mode: "insensitive" as const } } },
+      { model: { nameAr: { contains: v, mode: "insensitive" as const } } },
+    ]),
+  }));
+}
+
 /** Build Prisma where for server-side filters (playbook §7.3). */
 export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
   const and: Prisma.ListingWhereInput[] = [
@@ -58,16 +77,7 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
     { category: { code: CATEGORY_CODE_TO_ENUM[q.category] } },
   ];
 
-  if (q.keyword) {
-    and.push({
-      OR: [
-        { title: { contains: q.keyword, mode: "insensitive" } },
-        { description: { contains: q.keyword, mode: "insensitive" } },
-        { make: { nameEn: { contains: q.keyword, mode: "insensitive" } } },
-        { model: { nameEn: { contains: q.keyword, mode: "insensitive" } } },
-      ],
-    });
-  }
+  if (q.keyword) and.push(...keywordWhere(q.keyword));
   if (q.make) {
     and.push({ make: { nameEn: { equals: q.make, mode: "insensitive" } } });
   }
@@ -209,6 +219,43 @@ export async function findMakesForCategory(category: VehicleCategoryCode) {
   return rows.map((r) => r.nameEn);
 }
 
+/** Makes that have at least one live ad, so links never lead to an empty page. */
+export async function findMakesWithActiveListings(
+  category: VehicleCategoryCode,
+) {
+  const rows = await prisma.vehicleMake.findMany({
+    where: {
+      isActive: true,
+      category: { code: CATEGORY_CODE_TO_ENUM[category] },
+      listings: { some: { status: ListingStatus.ACTIVE } },
+    },
+    orderBy: { nameEn: "asc" },
+    select: { nameEn: true },
+  });
+  return rows.map((r) => r.nameEn);
+}
+
+/** Live ads matching a keyword in each of the given categories. */
+export async function countKeywordMatches(
+  keyword: string,
+  categories: VehicleCategoryCode[],
+): Promise<{ category: VehicleCategoryCode; count: number }[]> {
+  return Promise.all(
+    categories.map(async (category) => ({
+      category,
+      count: await prisma.listing.count({
+        where: {
+          AND: [
+            { status: ListingStatus.ACTIVE },
+            { category: { code: CATEGORY_CODE_TO_ENUM[category] } },
+            ...keywordWhere(keyword),
+          ],
+        },
+      }),
+    })),
+  );
+}
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -228,7 +275,10 @@ export async function updateListingStatus(
   return prisma.listing.update({ where: { id }, data, include: publicInclude });
 }
 
-export async function findSellerListings(sellerId: string, status?: ListingStatus) {
+export async function findSellerListings(
+  sellerId: string,
+  status?: ListingStatus,
+) {
   return prisma.listing.findMany({
     where: {
       sellerId,
@@ -243,7 +293,10 @@ export async function createListing(data: Prisma.ListingCreateInput) {
   return prisma.listing.create({ data, include: publicInclude });
 }
 
-export async function updateListing(id: string, data: Prisma.ListingUpdateInput) {
+export async function updateListing(
+  id: string,
+  data: Prisma.ListingUpdateInput,
+) {
   return prisma.listing.update({ where: { id }, data, include: publicInclude });
 }
 

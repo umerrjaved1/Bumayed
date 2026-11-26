@@ -16,7 +16,10 @@ export default async function FavoritesPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const session = await auth();
-  if (!session?.user) redirect(`/${locale}/auth/login`);
+  if (!session?.user)
+    redirect(
+      `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard/favorites`)}`,
+    );
 
   const user = await requireSessionUser();
   const rows = await repo.listFavorites(user.id);

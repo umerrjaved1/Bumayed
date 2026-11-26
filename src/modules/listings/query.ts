@@ -29,6 +29,14 @@ function num(v: string | string[] | undefined): number | undefined {
   return Math.abs(i) <= 2_147_483_647 ? i : undefined;
 }
 
+/** A min above the max is almost always a typo, so swap rather than return nothing. */
+function ordered(
+  min: number | undefined,
+  max: number | undefined,
+): [number | undefined, number | undefined] {
+  return min != null && max != null && min > max ? [max, min] : [min, max];
+}
+
 /** Parse raw URL search params into a typed query (invalid values dropped). */
 export function parseListingQuery(
   searchParams: SearchParamsInput,
@@ -37,14 +45,22 @@ export function parseListingQuery(
   const rawSort = str(searchParams.sort) as ListingSort | undefined;
   const condition = str(searchParams.condition);
   const sellerType = str(searchParams.sellerType);
+  const [priceMin, priceMax] = ordered(
+    num(searchParams.priceMin),
+    num(searchParams.priceMax),
+  );
+  const [yearMin, yearMax] = ordered(
+    num(searchParams.yearMin),
+    num(searchParams.yearMax),
+  );
   return {
     category,
     keyword: str(searchParams.keyword),
     make: str(searchParams.make),
-    priceMin: num(searchParams.priceMin),
-    priceMax: num(searchParams.priceMax),
-    yearMin: num(searchParams.yearMin),
-    yearMax: num(searchParams.yearMax),
+    priceMin,
+    priceMax,
+    yearMin,
+    yearMax,
     mileageMax: num(searchParams.mileageMax),
     emirate: str(searchParams.emirate),
     condition:

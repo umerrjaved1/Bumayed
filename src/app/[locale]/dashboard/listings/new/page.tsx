@@ -13,7 +13,10 @@ export default async function NewListingPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const session = await auth();
-  if (!session?.user) redirect(`/${locale}/auth/login`);
+  if (!session?.user)
+    redirect(
+      `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard/listings/new`)}`,
+    );
 
   return <ListingWizard />;
 }

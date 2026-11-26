@@ -37,7 +37,7 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "meta" });
   return {
     metadataBase: new URL(siteUrl()),
-    title: { default: t("homeTitle"), template: "%s — Bumayed" },
+    title: { default: t("homeTitle"), template: `%s — ${t("brand")}` },
     description: t("homeDescription"),
     alternates: {
       canonical: `${siteUrl()}/${locale}`,

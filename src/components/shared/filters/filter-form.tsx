@@ -95,7 +95,9 @@ export function FilterForm({
 
   function reset() {
     startNavigationProgress();
-    startTransition(() => router.push(pathname));
+    // Reset clears the filters but keeps the sort order the user picked.
+    const qs = values.sort !== "newest" ? `?sort=${values.sort}` : "";
+    startTransition(() => router.push(`${pathname}${qs}`));
     onApplied?.();
   }
 

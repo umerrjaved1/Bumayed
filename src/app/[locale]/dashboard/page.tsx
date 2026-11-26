@@ -18,7 +18,9 @@ export default async function DashboardPage({
   setRequestLocale(locale);
   const session = await auth();
   if (!session?.user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(
+      `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard`)}`,
+    );
   }
 
   const t = await getTranslations("dashboard");
@@ -70,7 +72,10 @@ export default async function DashboardPage({
                 {t("postAd")}
               </Button>
               {session.user.role === "DEALER" ? (
-                <Button variant="outline" render={<Link href="/dashboard/packages" />}>
+                <Button
+                  variant="outline"
+                  render={<Link href="/dashboard/packages" />}
+                >
                   {t("packagesNav")}
                 </Button>
               ) : null}
@@ -82,10 +87,16 @@ export default async function DashboardPage({
             <CardTitle>{t("favoritesNav")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" render={<Link href="/dashboard/favorites" />}>
+            <Button
+              variant="outline"
+              render={<Link href="/dashboard/favorites" />}
+            >
               {t("viewFavorites")}
             </Button>
-            <Button variant="ghost" render={<Link href="/dashboard/notifications" />}>
+            <Button
+              variant="ghost"
+              render={<Link href="/dashboard/notifications" />}
+            >
               {t("notificationsNav")}
             </Button>
           </CardContent>
@@ -96,7 +107,10 @@ export default async function DashboardPage({
               <CardTitle>{t("dealerNav")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" render={<Link href="/dashboard/dealer" />}>
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/dealer" />}
+              >
                 {t("dealerNav")}
               </Button>
             </CardContent>

@@ -345,7 +345,10 @@ export default async function ListingDetailPage({
               <div className="flex items-center gap-3">
                 <Avatar className="size-12">
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {listing.seller.name.slice(0, 1)}
+                    {/* Same name as the label beside it (the dealer name for dealers). */}
+                    {Array.from(
+                      (listing.seller.dealerName ?? listing.seller.name).trim(),
+                    )[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>

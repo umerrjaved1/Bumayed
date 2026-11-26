@@ -1,9 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { buildQueryString, parseListingQuery } from "@/modules/listings/query";
 import {
+  getKeywordMatchesElsewhere,
   getMakesForCategory,
   searchPublicListings,
 } from "@/modules/listings/service";
+import { Link } from "@/i18n/navigation";
 import type {
   SearchParamsInput,
   VehicleCategoryCode,
@@ -39,6 +41,11 @@ export async function CategoryResults({
     searchPublicListings(query),
     getMakesForCategory(category),
   ]);
+  // Nothing here for this keyword: point to the categories where it does match.
+  const elsewhere =
+    items.length === 0 && query.keyword
+      ? await getKeywordMatchesElsewhere(query.keyword, category)
+      : [];
   const locale = await getLocale();
   const flat = flatten(searchParams);
   // Plain <a> links bypass the i18n router, so the locale prefix is added here.
@@ -89,7 +96,25 @@ export async function CategoryResults({
                 body={tr("noResultsBody")}
                 actionLabel={tr("clearFilters")}
                 actionHref={`/${category}`}
-              />
+              >
+                {elsewhere.length > 0 && (
+                  <ul className="mt-4 flex flex-wrap justify-center gap-2">
+                    {elsewhere.map(({ category: other, count }) => (
+                      <li key={other}>
+                        <Link
+                          href={`/${other}?keyword=${encodeURIComponent(query.keyword ?? "")}`}
+                          className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                        >
+                          {tr("foundElsewhere", {
+                            count,
+                            category: tc(other),
+                          })}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </EmptyState>
             </div>
           ) : (
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

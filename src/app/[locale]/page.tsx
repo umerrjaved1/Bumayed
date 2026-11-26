@@ -1,13 +1,21 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Car, CircleGauge, Ship, Megaphone, MessagesSquare, BadgeCheck } from "lucide-react";
+import {
+  Car,
+  CircleGauge,
+  Ship,
+  Megaphone,
+  MessagesSquare,
+  BadgeCheck,
+} from "lucide-react";
 import { SearchBar } from "@/components/shared/search-bar";
 import { CategoryCard } from "@/components/shared/category-card";
 import { ListingCard } from "@/components/shared/listing-card";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/auth";
 import {
   getFeaturedListings,
   getLatestListings,
-  getMakesForCategory,
+  getMakesWithListings,
 } from "@/modules/listings/service";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -24,11 +32,25 @@ export default async function HomePage({
   const t = await getTranslations("home");
   const tc = await getTranslations("categories");
 
-  const [featured, latest, popularMakes] = await Promise.all([
+  const [featured, recent, popularMakes, session] = await Promise.all([
     getFeaturedListings(6),
-    getLatestListings(6),
-    getMakesForCategory("cars"),
+    getLatestListings(12),
+    // Only makes with live ads, so no chip leads to an empty results page.
+    getMakesWithListings("cars"),
+    auth(),
   ]);
+  // Featured ads already have their own row; don't show them twice.
+  const featuredSlugs = new Set(featured.map((l) => l.slug));
+  const latest = recent.filter((l) => !featuredSlugs.has(l.slug)).slice(0, 6);
+
+  // Dealers go straight to packages; everyone else signs up as a dealer first.
+  const role = session?.user?.role;
+  const dealerCtaHref =
+    role === "DEALER" || role === "SUPER_ADMIN"
+      ? "/dashboard/packages"
+      : session?.user
+        ? "/dashboard"
+        : "/auth/register?type=dealer";
 
   const categories = [
     { key: "cars", href: "/cars", icon: Car },
@@ -38,7 +60,11 @@ export default async function HomePage({
 
   const steps = [
     { icon: Megaphone, title: t("howStep1Title"), body: t("howStep1Body") },
-    { icon: MessagesSquare, title: t("howStep2Title"), body: t("howStep2Body") },
+    {
+      icon: MessagesSquare,
+      title: t("howStep2Title"),
+      body: t("howStep2Body"),
+    },
     { icon: BadgeCheck, title: t("howStep3Title"), body: t("howStep3Body") },
   ];
 
@@ -90,37 +116,43 @@ export default async function HomePage({
       </section>
 
       {/* Popular makes */}
-      <section className="border-t bg-muted/50">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {t("popularMakes")}
-          </h2>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {popularMakes.map((make) => (
-              <Badge
-                key={make}
-                variant="secondary"
-                className="px-4 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                render={<Link href={`/cars?make=${encodeURIComponent(make)}`} />}
-              >
-                {make}
-              </Badge>
-            ))}
+      {popularMakes.length > 0 && (
+        <section className="border-t bg-muted/50">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {t("popularMakes")}
+            </h2>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {popularMakes.map((make) => (
+                <Badge
+                  key={make}
+                  variant="secondary"
+                  className="h-10 px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                  render={
+                    <Link href={`/cars?make=${encodeURIComponent(make)}`} />
+                  }
+                >
+                  {make}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Latest ads */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          {t("latestAds")}
-        </h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {latest.map((listing) => (
-            <ListingCard key={listing.slug} listing={listing} />
-          ))}
-        </div>
-      </section>
+      {latest.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {t("latestAds")}
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {latest.map((listing) => (
+              <ListingCard key={listing.slug} listing={listing} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Dealer promotion */}
       <section className="border-y bg-secondary">
@@ -133,7 +165,9 @@ export default async function HomePage({
               {t("dealerPromoBody")}
             </p>
           </div>
-          <Button size="lg">{t("dealerPromoCta")}</Button>
+          <Button size="lg" render={<Link href={dealerCtaHref} />}>
+            {t("dealerPromoCta")}
+          </Button>
         </div>
       </section>
 

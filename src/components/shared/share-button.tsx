@@ -18,8 +18,13 @@ export function ShareButton({ title }: { title: string }) {
         /* user cancelled — fall through to clipboard */
       }
     }
-    await navigator.clipboard.writeText(url);
-    toast.success(t("shareCopied"));
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(t("shareCopied"));
+    } catch {
+      // Clipboard blocked (permissions or an insecure context): show the link instead.
+      toast(t("shareManual"), { description: url });
+    }
   }
 
   return (
