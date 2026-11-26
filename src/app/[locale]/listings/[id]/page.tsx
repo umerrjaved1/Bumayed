@@ -26,6 +26,7 @@ import { ShareButton } from "@/components/shared/share-button";
 import { ReportDialog } from "@/components/shared/report-dialog";
 import { FavoriteButton } from "@/components/shared/favorite-button";
 import { ListingCard } from "@/components/shared/listing-card";
+import { publicMetadata } from "@/lib/seo";
 
 const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
 
@@ -36,10 +37,17 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
   const listing = await getPublicListingBySlug(id);
   if (!listing) return {};
-  return { title: listing.title };
+  const description = listing.description.slice(0, 160);
+  return publicMetadata({
+    locale,
+    path: `/listings/${listing.slug}`,
+    title: listing.title,
+    description,
+    image: listing.photos[0] ?? null,
+  });
 }
 
 export default async function ListingDetailPage({
@@ -124,12 +132,43 @@ export default async function ListingDetailPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": listing.category === "boats" ? "Product" : "Vehicle",
+            name: listing.title,
+            description: listing.description.slice(0, 300),
+            image: listing.photos,
+            brand: listing.make,
+            model: listing.model,
+            vehicleModelDate: listing.year,
+            offers: {
+              "@type": "Offer",
+              priceCurrency: "AED",
+              price: listing.priceAed,
+              availability: "https://schema.org/InStock",
+            },
+          }),
+        }}
+      />
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         {/* Main column */}
         <div>
           {/* Gallery — placeholders until image pipeline (Phase 5) */}
-          <div className="relative flex aspect-[16/10] items-center justify-center rounded-lg bg-gradient-to-br from-primary/85 to-primary">
-            <Icon className="size-20 text-primary-foreground/40" aria-hidden />
+          <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary/85 to-primary">
+            {listing.photos[0] ? (
+              // Local uploads are served as static files; first image is the LCP candidate.
+              <img
+                src={listing.photos[0]}
+                alt={listing.title}
+                className="size-full object-cover"
+                fetchPriority="high"
+              />
+            ) : (
+              <Icon className="size-20 text-primary-foreground/40" aria-hidden />
+            )}
             <div className="absolute start-3 top-3 flex gap-1.5">
               {listing.featured && (
                 <Badge className="bg-accent text-accent-foreground">
@@ -140,12 +179,17 @@ export default async function ListingDetailPage({
             </div>
           </div>
           <div className="mt-2 grid grid-cols-6 gap-2">
-            {Array.from({ length: Math.min(listing.photoCount, 6) }).map((_, i) => (
+            {listing.photos.slice(0, 6).map((src, i) => (
               <div
-                key={i}
-                className={`flex aspect-video items-center justify-center rounded border bg-muted ${i === 0 ? "ring-2 ring-accent" : ""}`}
+                key={src}
+                className={`overflow-hidden rounded border bg-muted ${i === 0 ? "ring-2 ring-accent" : ""}`}
               >
-                <Icon className="size-5 text-muted-foreground/50" aria-hidden />
+                <img
+                  src={src}
+                  alt={`${listing.title} ${i + 1}`}
+                  className="aspect-video size-full object-cover"
+                  loading="lazy"
+                />
               </div>
             ))}
           </div>

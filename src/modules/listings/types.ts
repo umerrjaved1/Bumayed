@@ -30,7 +30,8 @@ export type ListingPublicDto = {
   city: string;
   condition: "new" | "used";
   description: string;
-  photoCount: number;
+    photoCount: number;
+    photos: string[];
   videoUrl?: string;
   featured?: boolean;
   urgent?: boolean;

@@ -1,8 +1,10 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireAdminPage } from "@/lib/admin-guard";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { privateRobots } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata = privateRobots;
 
 export default async function AdminLayout(
   props: LayoutProps<"/[locale]/admin">,

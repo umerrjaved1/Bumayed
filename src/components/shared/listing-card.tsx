@@ -24,9 +24,20 @@ export function ListingCard({ listing }: { listing: ListingPublicDto }) {
     <Link href={`/listings/${listing.slug}`} className="group block">
       <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow group-hover:shadow-md">
         {/* Photo area — placeholder until image pipeline (Phase 5) */}
-        <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-primary/85 to-primary">
-          <Icon className="size-12 text-primary-foreground/40" aria-hidden />
-          <span className="sr-only">{t("photoPlaceholder")}</span>
+        <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-primary/85 to-primary">
+          {listing.photos[0] ? (
+            <img
+              src={listing.photos[0]}
+              alt={listing.title}
+              className="size-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <>
+              <Icon className="size-12 text-primary-foreground/40" aria-hidden />
+              <span className="sr-only">{t("photoPlaceholder")}</span>
+            </>
+          )}
           <div className="absolute start-2 top-2 flex gap-1">
             {listing.featured && (
               <Badge className="bg-accent text-accent-foreground">

@@ -117,7 +117,7 @@ export function ModerationQueue({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={item.imageUrl}
-                    alt=""
+                    alt={item.title}
                     className="h-full w-full object-cover"
                   />
                 ) : null}

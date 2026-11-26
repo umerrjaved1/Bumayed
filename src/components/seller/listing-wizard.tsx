@@ -465,7 +465,7 @@ export function ListingWizard() {
               {images.map((img) => (
                 <div key={img.id} className="aspect-video overflow-hidden rounded border bg-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt="" className="size-full object-cover" />
+                  <img src={img.url} alt={t("photos")} className="size-full object-cover" />
                 </div>
               ))}
             </div>

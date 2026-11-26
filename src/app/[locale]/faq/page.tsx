@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { ContentPage } from "@/components/shared/content-page";
+import { publicMetadata } from "@/lib/seo";
 import {
   Accordion,
   AccordionContent,
@@ -8,6 +10,21 @@ import {
 } from "@/components/ui/accordion";
 
 const QA = ["1", "2", "3", "4"] as const;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "content.faq" });
+  return publicMetadata({
+    locale,
+    path: "/faq",
+    title: t("title"),
+    description: t("a1"),
+  });
+}
 
 export default async function FaqPage({
   params,

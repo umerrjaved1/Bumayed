@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CategoryResults } from "@/components/shared/category-results";
+import { publicMetadata } from "@/lib/seo";
 import type { SearchParamsInput } from "@/modules/listings/types";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "categories" });
-  return { title: t("cars"), description: t("carsDescription") };
+  return publicMetadata({
+    locale,
+    path: "/cars",
+    title: t("cars"),
+    description: t("carsDescription"),
+  });
 }
 
 export default async function CarsPage({

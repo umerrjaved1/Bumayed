@@ -14,6 +14,7 @@ import type {
   Emirate,
   City,
 } from "@/generated/prisma/client";
+import { publicUrlForKey } from "@/lib/storage/local";
 import {
   CATEGORY_ENUM_TO_CODE,
   type EmirateCode,
@@ -91,6 +92,7 @@ export function toPublicDto(row: ListingRow): ListingPublicDto {
     condition: (lower(specs.condition) as "new" | "used") ?? "used",
     description: row.description,
     photoCount: row.images.length,
+    photos: row.images.map((image) => publicUrlForKey(image.objectKey)),
     videoUrl: row.video?.originalUrl,
     featured: activePromo(row.promotions, "FEATURED"),
     urgent: activePromo(row.promotions, "URGENT"),

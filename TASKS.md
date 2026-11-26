@@ -87,9 +87,9 @@ Scope changes must be recorded here and approved before implementation.
 - [ ] **Approval gate: notification copy and prohibited-listing policy**
 
 ## Phase 9 — SEO / a11y / performance
-- [ ] Metadata, canonical, OG, sitemap, robots, hreflang, slugs
-- [ ] Accessibility pass (keyboard, focus, labels, contrast, alt text)
-- [ ] Performance pass (image opt, lazy load, indexes, N+1 audit, measured)
+- [x] Metadata, canonical, OG, sitemap, robots, hreflang, slugs
+- [x] Accessibility pass (keyboard, focus, labels, contrast, alt text)
+- [x] Performance pass (image opt, lazy load, indexes, N+1 audit, measured)
 
 ## Phase 10 — Comprehensive QA
 - [ ] Functional matrix (playbook §14)
