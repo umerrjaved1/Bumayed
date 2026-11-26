@@ -36,6 +36,11 @@ export async function createSellerListing(input: {
   user: SessionUser;
   data: ListingWriteInput;
 }) {
+  const description = input.data.description;
+  const { findProhibitedTerms } = await import("@/modules/moderation/policy");
+  const hits = await findProhibitedTerms(`${input.data.title}\n${description}`);
+  if (hits.length > 0) throw new Error("PROHIBITED_CONTENT");
+
   await assertListingQuota(input.user);
   const category = await repo.findCategoryByCode(input.data.category);
   if (!category) throw new Error("INVALID_CATEGORY");
@@ -79,6 +84,15 @@ export async function createSellerListing(input: {
   }
 
   const fresh = await repo.findListingById(row.id);
+  if (status === ListingStatus.PENDING && fresh) {
+    const { notifyListingEvent } = await import("@/modules/notifications/events");
+    await notifyListingEvent({
+      sellerId: input.user.id,
+      listingId: fresh.id,
+      title: fresh.title,
+      status: "PENDING",
+    }).catch((err) => console.error("listing notification", err));
+  }
   return toPublicDto(fresh!);
 }
 

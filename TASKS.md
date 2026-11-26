@@ -80,9 +80,11 @@ Scope changes must be recorded here and approved before implementation.
 - [ ] **Approval gate: sandbox payment flow (client)**
 
 ## Phase 8 — Notifications, content, moderation
-- [ ] Notification events + email & in-app delivery + preferences + dedup
-- [ ] Report workflow + resolution + user notification
-- [ ] Banners & content pages admin with sanitization
+- [x] Notification events + email & in-app delivery + preferences + dedup
+- [x] Report resolution notifies the reporter + audit (already recorded)
+- [x] Prohibited-term check (policy text is editable; client still approves the wording)
+- [x] Banners & content pages admin with sanitization
+- [ ] **Approval gate: notification copy and prohibited-listing policy**
 
 ## Phase 9 — SEO / a11y / performance
 - [ ] Metadata, canonical, OG, sitemap, robots, hreflang, slugs

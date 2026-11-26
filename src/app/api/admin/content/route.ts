@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSessionUser } from "@/lib/auth-session";
 import { adminErrorResponse, clientIp } from "@/modules/admin/http";
 import { contentUpsertSchema } from "@/modules/admin/schemas";
-import { getContent, saveContentPage } from "@/modules/admin/service";
+import { getContent, saveBanner, saveContentPage } from "@/modules/admin/service";
 
 export const dynamic = "force-dynamic";
 
@@ -48,5 +48,28 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ page });
   } catch (err) {
     return adminErrorResponse(err, "Failed to save content");
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = await requireSessionUser();
+    const body = await request.json();
+    const banner = await saveBanner(
+      user,
+      {
+        titleEn: String(body.titleEn ?? ""),
+        titleAr: body.titleAr ? String(body.titleAr) : null,
+        imageKey: String(body.imageKey ?? ""),
+        linkUrl: body.linkUrl ? String(body.linkUrl) : null,
+        position: String(body.position ?? "home_hero"),
+        width: body.width == null ? null : Number(body.width),
+        height: body.height == null ? null : Number(body.height),
+      },
+      clientIp(request),
+    );
+    return NextResponse.json({ banner }, { status: 201 });
+  } catch (err) {
+    return adminErrorResponse(err, "Failed to save banner");
   }
 }

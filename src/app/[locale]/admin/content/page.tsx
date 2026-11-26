@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireAdminPage } from "@/lib/admin-guard";
 import { getContent } from "@/modules/admin/service";
 import { Badge } from "@/components/ui/badge";
+import { ContentEditor } from "@/components/admin/content-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -21,23 +22,16 @@ export default async function AdminContentPage({
 
   return (
     <div className="space-y-8">
-      <section>
-        <h2 className="text-lg font-semibold">{t("contentPages")}</h2>
-        <ul className="mt-3 divide-y rounded-lg border">
-          {pages.map((p) => (
-            <li key={p.id} className="px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{p.slug}</span>
-                <Badge variant="secondary">{p.status}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {p.titleEn} / {p.titleAr}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
+      <ContentEditor
+        pages={pages.map((p) => ({
+          slug: p.slug,
+          status: p.status,
+          titleEn: p.titleEn,
+          titleAr: p.titleAr,
+          bodyEn: p.bodyEn,
+          bodyAr: p.bodyAr,
+        }))}
+      />
       <section>
         <h2 className="text-lg font-semibold">{t("banners")}</h2>
         {banners.length === 0 ? (

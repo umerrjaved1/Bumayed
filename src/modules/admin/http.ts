@@ -14,7 +14,9 @@ const STATUS: Record<string, number> = {
   LISTING_NOT_ACTIVE: 400,
   PRICE_UNAVAILABLE: 400,
   PACKAGE_UNAVAILABLE: 400,
-  QUOTA_EXCEEDED: 403,
+  PROHIBITED_CONTENT: 400,
+  INVALID_LINK: 400,
+  INVALID_BANNER_SIZE: 400,
 };
 
 export function adminErrorResponse(err: unknown, fallbackMessage: string) {

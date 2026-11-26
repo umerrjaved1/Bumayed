@@ -114,6 +114,7 @@ enum NotificationType {
   LISTING_EXPIRED
   PAYMENT_RESULT
   PACKAGE_EXPIRY
+  REPORT_RESOLVED
 }
 
 enum ReportStatus {

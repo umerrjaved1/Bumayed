@@ -175,7 +175,7 @@ export function buildSandboxEvent(input: {
   return { body, signature, event };
 }
 
-export async function applySignedWebhook(rawBody: string, signature: string | null) {
+async function applySignedWebhookInner(rawBody: string, signature: string | null) {
   let secret: string;
   try {
     secret = webhookSecret();
@@ -249,8 +249,26 @@ export async function applySignedWebhook(rawBody: string, signature: string | nu
       await revokeEntitlement(tx, payment.id);
     }
 
-    return { action, paymentId: payment.id };
+    return { action, paymentId: payment.id, userId: payment.userId };
   });
+}
+
+export async function applySignedWebhook(rawBody: string, signature: string | null) {
+  const result = await applySignedWebhookInner(rawBody, signature);
+  if (
+    result.action === "grant" ||
+    result.action === "mark_failed" ||
+    result.action === "mark_cancelled" ||
+    result.action === "revoke"
+  ) {
+    const { notifyPaymentResult } = await import("@/modules/notifications/events");
+    await notifyPaymentResult({
+      userId: result.userId,
+      paymentId: result.paymentId,
+      action: result.action,
+    }).catch((err) => console.error("payment notification", err));
+  }
+  return result;
 }
 
 async function grantEntitlement(

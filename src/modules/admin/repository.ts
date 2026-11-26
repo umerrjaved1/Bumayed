@@ -324,3 +324,23 @@ export async function listAdminUsers() {
     include: { profile: true },
   });
 }
+
+export async function createBanner(data: {
+  titleEn: string;
+  titleAr?: string | null;
+  imageKey: string;
+  linkUrl?: string | null;
+  position: string;
+  sortOrder?: number;
+}) {
+  return prisma.banner.create({
+    data: {
+      titleEn: data.titleEn,
+      titleAr: data.titleAr ?? null,
+      imageKey: data.imageKey,
+      linkUrl: data.linkUrl ?? null,
+      position: data.position,
+      sortOrder: data.sortOrder ?? 0,
+    },
+  });
+}

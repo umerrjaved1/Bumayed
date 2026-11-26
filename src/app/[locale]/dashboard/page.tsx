@@ -85,6 +85,9 @@ export default async function DashboardPage({
             <Button variant="outline" render={<Link href="/dashboard/favorites" />}>
               {t("viewFavorites")}
             </Button>
+            <Button variant="ghost" render={<Link href="/dashboard/notifications" />}>
+              {t("notificationsNav")}
+            </Button>
           </CardContent>
         </Card>
         {session.user.role === "DEALER" ? (

@@ -1,25 +1,20 @@
 # DEVELOPMENT_STATUS.md — Bumayed
 
 **Last updated:** 2026-11-26
-**Current phase:** Phase 7 — sandbox payments built, **awaiting client approval of the sandbox flow**
+**Current phase:** Phase 8 — built, policy wording still needs client approval
 
 ## Completed
-- Phase 0–6 ✅ approved (seller + admin/dealer gates approved 2026-11-26)
-- Phase 7 promotions, packages, payments:
-  - Featured / Premium / Urgent prices and durations read from `promotion_prices`
-  - Dealer packages from `packages`; featured slots consumed server-side; listing quota enforced when a package sets one (seeded packages stay unlimited)
-  - Sandbox checkout. A browser return does not activate anything
-  - Signed webhook grants, fails, cancels, or refunds. Duplicate `providerEventId` cannot grant twice
-  - Live: https://bumayed.vercel.app
+- Phase 0–6 approved
+- Phase 7 sandbox payments built (test later)
+- Phase 8 notifications, content, moderation:
+  - Inbox at `/dashboard/notifications`, email when a provider key exists, deduped retries
+  - Listing submit/approve/reject/expiry, payment result, package expiry, report resolved
+  - Admin content editor sanitizes HTML; banners need an https link and a size in range
+  - New listings are blocked when they match prohibited terms (editable page, defaults until filled)
 
-## In progress
-- ⛔ **Approval gate:** client reviews the sandbox payment flow before a real provider (Telr, Network International, or Stripe) and production credentials
+## Still open
+- Phase 7 sandbox payment test, then a real provider
+- Client approval of notification copy and the prohibited-listing word list
 
-## Next step (after gate)
-Phase 8 — notifications, content, moderation polish.
-
-## How to try
-1. Login `dealer.dev@bumayed.local` / `DevPassword123!`
-2. Open an **active** listing → Promote, or `/en/dashboard/packages`
-3. On sandbox checkout, choose Simulate success
-4. Press success again — the second event must not add another promotion
+## Live
+https://bumayed.vercel.app

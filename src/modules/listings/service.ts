@@ -107,5 +107,21 @@ export async function transitionListing(input: {
   if (input.to === ListingStatus.REMOVED) data.removedAt = now;
 
   const updated = await repo.updateListingStatus(input.listingId, data);
-  return toPublicDto(updated);
+  const dto = toPublicDto(updated);
+  if (
+    input.to === ListingStatus.PENDING ||
+    input.to === ListingStatus.ACTIVE ||
+    input.to === ListingStatus.REJECTED ||
+    input.to === ListingStatus.EXPIRED
+  ) {
+    const { notifyListingEvent } = await import("@/modules/notifications/events");
+    await notifyListingEvent({
+      sellerId: updated.sellerId,
+      listingId: updated.id,
+      title: updated.title,
+      status: input.to,
+      reason: input.rejectionReason,
+    }).catch((err) => console.error("listing notification", err));
+  }
+  return dto;
 }

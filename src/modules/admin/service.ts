@@ -8,6 +8,7 @@ import {
 } from "@/generated/prisma/client";
 import type { SessionUser } from "@/modules/listings/policies";
 import { transitionListing } from "@/modules/listings/service";
+import { sanitizeRichText } from "@/modules/content/sanitize";
 import { writeAuditLog } from "./audit";
 import { assertCan, isSuperAdmin } from "./policies";
 import * as repo from "./repository";
@@ -244,6 +245,21 @@ export async function resolveReport(
     metadata: { status: input.status },
     ip,
   });
+  if (updated.reporterId) {
+    const { notify } = await import("@/modules/notifications/service");
+    const { NotificationType } = await import("@/generated/prisma/client");
+    await notify({
+      userId: updated.reporterId,
+      type: NotificationType.REPORT_RESOLVED,
+      dedupKey: `REPORT:${updated.id}:${input.status}`,
+      copy: {
+        titleEn: "Your report was reviewed",
+        titleAr: "تمت مراجعة بلاغك",
+        bodyEn: input.resolution,
+        bodyAr: input.resolution,
+      },
+    }).catch((err) => console.error("report notification", err));
+  }
   return updated;
 }
 
@@ -319,7 +335,11 @@ export async function saveContentPage(
   ip?: string | null,
 ) {
   assertCan(actor, "admin.content.manage");
-  const saved = await repo.updateContentPage(slug, data);
+  const saved = await repo.updateContentPage(slug, {
+    ...data,
+    bodyEn: sanitizeRichText(data.bodyEn),
+    bodyAr: sanitizeRichText(data.bodyAr),
+  });
   await writeAuditLog({
     actorId: actor.id,
     action: "content.update",
@@ -329,6 +349,42 @@ export async function saveContentPage(
     ip,
   });
   return saved;
+}
+
+export async function saveBanner(
+  actor: SessionUser,
+  input: {
+    titleEn: string;
+    titleAr?: string | null;
+    imageKey: string;
+    linkUrl?: string | null;
+    position: string;
+    width?: number | null;
+    height?: number | null;
+  },
+  ip?: string | null,
+) {
+  assertCan(actor, "admin.content.manage");
+  if (!input.titleEn.trim() || !input.imageKey.trim()) throw new Error("VALIDATION");
+  const { assertBannerSize, assertSafeLink } = await import("@/modules/content/sanitize");
+  assertBannerSize(input.width, input.height);
+  const linkUrl = assertSafeLink(input.linkUrl);
+  const banner = await repo.createBanner({
+    titleEn: input.titleEn,
+    titleAr: input.titleAr,
+    imageKey: input.imageKey,
+    linkUrl,
+    position: input.position,
+  });
+  await writeAuditLog({
+    actorId: actor.id,
+    action: "banner.create",
+    targetType: "Banner",
+    targetId: banner.id,
+    metadata: { position: banner.position },
+    ip,
+  });
+  return banner;
 }
 
 export async function getAdmins(user: SessionUser) {

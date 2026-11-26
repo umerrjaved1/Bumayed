@@ -65,6 +65,17 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (err instanceof Error && err.message === "PROHIBITED_CONTENT") {
+      return NextResponse.json(
+        {
+          error: {
+            code: "PROHIBITED_CONTENT",
+            message: "Listing text matches the prohibited-content policy",
+          },
+        },
+        { status: 400 },
+      );
+    }
     console.error("POST /api/seller/listings", err);
     return NextResponse.json(
       { error: { code: "INTERNAL", message: "Failed to create listing" } },
