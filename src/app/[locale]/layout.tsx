@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Arabic } from "next/font/google";
+import { Inter, Noto_Sans_Arabic, Plus_Jakarta_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -7,6 +7,7 @@ import { routing } from "@/i18n/routing";
 import { siteUrl } from "@/lib/seo";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteTabBar } from "@/components/layout/site-tab-bar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
@@ -15,6 +16,13 @@ import "../globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  weight: ["500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -69,7 +77,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={dir}
-      className={`${inter.variable} ${notoSansArabic.variable}`}
+      className={`${inter.variable} ${jakarta.variable} ${notoSansArabic.variable}`}
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col antialiased">
@@ -85,6 +93,7 @@ export default async function LocaleLayout({
         <SiteHeader />
             <main id="main" className="flex-1">{children}</main>
             <SiteFooter />
+            <SiteTabBar />
             <Toaster richColors position="top-center" />
           </TooltipProvider>
         </NextIntlClientProvider>

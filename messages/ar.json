@@ -41,7 +41,25 @@
     "howStep2Title": "يتواصل معك المشترون",
     "howStep2Body": "يتواصل معك المشترون المهتمون مباشرة عبر الهاتف أو واتساب.",
     "howStep3Title": "بِع بثقة",
-    "howStep3Body": "قابل المشتري وأتمم الصفقة ثم حدّث إعلانك كمباع."
+    "howStep3Body": "قابل المشتري وأتمم الصفقة ثم حدّث إعلانك كمباع.",
+    "heroEyebrow": "متاح في جميع الإمارات السبع",
+    "heroTitleLead": "اقتنِ",
+    "heroTitleAccent": "شيئاً استثنائياً",
+    "statLive": "إعلان نشط",
+    "statEmirates": "إمارات مغطاة",
+    "statLanguages": "لغتان",
+    "categoriesSubtitle": "اختر فئتك — تتم مراجعة كل إعلان قبل نشره.",
+    "featuredSubtitle": "إعلانات مميزة مختارة من بائعين موثوقين.",
+    "latestSubtitle": "أحدث الإعلانات المعتمدة.",
+    "makesSubtitle": "انتقل مباشرة إلى العلامات الأكثر طلباً.",
+    "howSubtitle": "البيع يستغرق دقائق وليس أسابيع.",
+    "viewAll": "عرض الكل",
+    "adsCount": "{count, plural, =0 {لا توجد إعلانات بعد} one {إعلان واحد} two {إعلانان} few {# إعلانات} many {# إعلاناً} other {# إعلان}}",
+    "explore": "استكشف",
+    "trustModerated": "كل إعلان تتم مراجعته",
+    "trustDealers": "معارض موثقة",
+    "trustBilingual": "العربية والإنجليزية",
+    "ctaEyebrow": "للمعارض"
   },
   "categories": {
     "cars": "سيارات",
@@ -59,7 +77,9 @@
     "featured": "مميز",
     "urgent": "عاجل",
     "negotiable": "قابل للتفاوض",
-    "photoPlaceholder": "الصورة قريباً"
+    "photoPlaceholder": "الصورة قريباً",
+    "photos": "{count, plural, one {صورة واحدة} two {صورتان} few {# صور} many {# صورة} other {# صورة}}",
+    "viewDetails": "عرض التفاصيل"
   },
   "filters": {
     "title": "عوامل التصفية",
@@ -108,7 +128,8 @@
     "jetski": "جت سكي",
     "sailboat": "قارب شراعي",
     "apply": "تطبيق التصفية",
-    "reset": "إعادة تعيين"
+    "reset": "إعادة تعيين",
+    "activeCount": "{count, plural, one {فلتر واحد مطبق} two {فلتران مطبقان} few {# فلاتر مطبقة} many {# فلتراً مطبقاً} other {# فلتر مطبق}}"
   },
   "sort": {
     "label": "ترتيب حسب",
@@ -128,7 +149,9 @@
     "next": "التالي",
     "previousPage": "الانتقال إلى الصفحة السابقة",
     "nextPage": "الانتقال إلى الصفحة التالية",
-    "foundElsewhere": "{count, plural, one {نتيجة واحدة} two {نتيجتان} few {# نتائج} many {# نتيجة} other {# نتيجة}} في {category}"
+    "foundElsewhere": "{count, plural, one {نتيجة واحدة} two {نتيجتان} few {# نتائج} many {# نتيجة} other {# نتيجة}} في {category}",
+    "browse": "تصفح",
+    "sortBy": "ترتيب"
   },
   "detail": {
     "specs": "المواصفات",
@@ -588,5 +611,13 @@
     "saved": "محفوظ",
     "add": "أضف إلى المفضلة",
     "remove": "إزالة من المفضلة"
+  },
+  "tabBar": {
+    "home": "الرئيسية",
+    "browse": "تصفح",
+    "post": "بيع",
+    "saved": "المحفوظات",
+    "account": "حسابي",
+    "login": "دخول"
   }
 }

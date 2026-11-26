@@ -41,7 +41,25 @@
     "howStep2Title": "Buyers contact you",
     "howStep2Body": "Interested buyers reach you directly by phone or WhatsApp.",
     "howStep3Title": "Sell with confidence",
-    "howStep3Body": "Meet the buyer, close the deal and mark your ad as sold."
+    "howStep3Body": "Meet the buyer, close the deal and mark your ad as sold.",
+    "heroEyebrow": "Live across all 7 emirates",
+    "heroTitleLead": "Drive home",
+    "heroTitleAccent": "something extraordinary",
+    "statLive": "Live ads",
+    "statEmirates": "Emirates covered",
+    "statLanguages": "Languages",
+    "categoriesSubtitle": "Pick a lane — every ad is reviewed before it goes live.",
+    "featuredSubtitle": "Hand-picked, promoted ads from trusted sellers.",
+    "latestSubtitle": "Fresh off the road — the newest approved ads.",
+    "makesSubtitle": "Jump straight to the brands buyers love.",
+    "howSubtitle": "Selling takes minutes, not weeks.",
+    "viewAll": "View all",
+    "adsCount": "{count, plural, =0 {No ads yet} one {# ad} other {# ads}}",
+    "explore": "Explore",
+    "trustModerated": "Every ad moderated",
+    "trustDealers": "Verified dealers",
+    "trustBilingual": "English & Arabic",
+    "ctaEyebrow": "For dealers"
   },
   "categories": {
     "cars": "Cars",
@@ -59,7 +77,9 @@
     "featured": "Featured",
     "urgent": "Urgent",
     "negotiable": "Negotiable",
-    "photoPlaceholder": "Photo coming soon"
+    "photoPlaceholder": "Photo coming soon",
+    "photos": "{count, plural, one {# photo} other {# photos}}",
+    "viewDetails": "View details"
   },
   "filters": {
     "title": "Filters",
@@ -108,7 +128,8 @@
     "jetski": "Jet ski",
     "sailboat": "Sailboat",
     "apply": "Apply filters",
-    "reset": "Reset"
+    "reset": "Reset",
+    "activeCount": "{count, plural, one {# filter applied} other {# filters applied}}"
   },
   "sort": {
     "label": "Sort by",
@@ -128,7 +149,9 @@
     "next": "Next",
     "previousPage": "Go to previous page",
     "nextPage": "Go to next page",
-    "foundElsewhere": "{count, plural, one {# match} other {# matches}} in {category}"
+    "foundElsewhere": "{count, plural, one {# match} other {# matches}} in {category}",
+    "browse": "Browse",
+    "sortBy": "Sort"
   },
   "detail": {
     "specs": "Specifications",
@@ -588,5 +611,13 @@
     "saved": "Saved",
     "add": "Add to favorites",
     "remove": "Remove from favorites"
+  },
+  "tabBar": {
+    "home": "Home",
+    "browse": "Browse",
+    "post": "Sell",
+    "saved": "Saved",
+    "account": "Account",
+    "login": "Log in"
   }
 }

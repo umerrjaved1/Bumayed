@@ -31,6 +31,7 @@ export function LanguageSwitcher() {
           <Button
             variant="ghost"
             size="icon"
+            className="size-10 rounded-full md:size-9"
             aria-label="Change language"
             disabled={isPending}
           />

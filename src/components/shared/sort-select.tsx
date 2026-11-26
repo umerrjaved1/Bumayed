@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { startNavigationProgress } from "@/components/layout/navigation-progress";
@@ -23,7 +24,9 @@ const SORTS: ListingSort[] = [
 export function SortSelect({
   value,
   currentParams,
+  className,
 }: {
+  className?: string;
   value: ListingSort;
   /** Serialized current search params (filters preserved on sort change). */
   currentParams: Record<string, string>;
@@ -43,7 +46,7 @@ export function SortSelect({
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-52" aria-label={t("label")}>
+      <SelectTrigger className={cn("w-52", className)} aria-label={t("label")}>
         <SelectValue>{(v: ListingSort) => t(v)}</SelectValue>
       </SelectTrigger>
       <SelectContent>

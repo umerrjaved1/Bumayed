@@ -264,14 +264,19 @@ export function FilterForm({
         />
       )}
 
-      <div className="flex gap-2 pt-2">
-        <Button type="submit" className="flex-1" disabled={pending}>
+      <div className="flex gap-2 pt-2 max-lg:sticky max-lg:bottom-0 max-lg:-mx-4 max-lg:border-t max-lg:bg-popover/95 max-lg:px-4 max-lg:py-3 max-lg:backdrop-blur">
+        <Button
+          type="submit"
+          className="flex-1 max-lg:h-11 max-lg:rounded-xl max-lg:text-sm"
+          disabled={pending}
+        >
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {t("apply")}
         </Button>
         <Button
           type="button"
           variant="outline"
+          className="max-lg:h-11 max-lg:rounded-xl max-lg:px-4"
           onClick={reset}
           disabled={pending}
         >
