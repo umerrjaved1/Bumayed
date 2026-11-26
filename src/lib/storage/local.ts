@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { env } from "@/lib/env";
+import { deleteR2Object, putR2Object, r2Configured } from "@/lib/storage/r2";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -28,10 +29,7 @@ function sniffMime(buf: Buffer): string | null {
   return null;
 }
 
-/**
- * Local filesystem storage adapter for Phase 5 until R2/S3 credentials exist.
- * Files land under public/uploads/listings so Next can serve them statically.
- */
+/** Listing images. R2 when storage env is set, otherwise the local uploads folder. */
 export async function saveListingImage(input: {
   listingId: string;
   file: Buffer;
@@ -49,14 +47,23 @@ export async function saveListingImage(input: {
 
   const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
   const objectKey = `listings/${input.listingId}/${randomUUID()}.${ext}`;
-  const abs = path.join(process.cwd(), "public", "uploads", objectKey);
-  await mkdir(path.dirname(abs), { recursive: true });
-  await writeFile(abs, input.file);
+
+  if (r2Configured()) {
+    await putR2Object({ objectKey, body: input.file, mime });
+  } else {
+    const abs = path.join(process.cwd(), "public", "uploads", objectKey);
+    await mkdir(path.dirname(abs), { recursive: true });
+    await writeFile(abs, input.file);
+  }
 
   return { objectKey, mime, sizeBytes: input.file.length };
 }
 
 export async function deleteListingImage(objectKey: string): Promise<void> {
+  if (r2Configured()) {
+    await deleteR2Object(objectKey);
+    return;
+  }
   const abs = path.join(process.cwd(), "public", "uploads", objectKey);
   try {
     await unlink(abs);

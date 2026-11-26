@@ -4,6 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@aws-sdk/client-s3"],
   // cacheComponents/partialPrefetching intentionally left OFF for the MVP
   // (playbook rule 13: boring, proven solutions; revisit before production).
   turbopack: {
