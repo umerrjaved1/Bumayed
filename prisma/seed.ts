@@ -911,6 +911,186 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
   console.log("  seller.dev@bumayed.local    (role: INDIVIDUAL) — DEV ONLY");
 }
 
+const BULK_COUNTS: Record<VehicleCategory, number> = {
+  CARS: 45,
+  MOTORCYCLES: 18,
+  BOATS: 15,
+};
+
+const BULK_PHOTOS: Record<VehicleCategory, string[]> = {
+  CARS: [
+    "nissan-patrol-platinum-2023",
+    "toyota-land-cruiser-gxr-2022",
+    "mercedes-g63-amg-2024",
+  ],
+  MOTORCYCLES: ["harley-fat-boy-114-2021"],
+  BOATS: ["yamaha-waverunner-fx-2022", "gulf-craft-majesty-62-2020"],
+};
+
+const CAR_SPECS = ["GCC", "GCC", "GCC", "AMERICAN", "EUROPEAN", "JAPANESE"] as const;
+const CAR_COLOURS = ["White", "Black", "Silver", "Pearl White", "Grey", "Blue"];
+const MOTO_TYPES = ["sport", "cruiser", "touring", "adventure", "scooter"] as const;
+const BOAT_TYPES = ["yacht", "fishing", "speedboat", "jetski", "sailboat"] as const;
+const FUELS = ["PETROL", "PETROL", "DIESEL", "HYBRID", "ELECTRIC"] as const;
+
+/** Extra development ads so browse, filters, and pagination have real volume. */
+async function seedBulkListings() {
+  const dealer = await prisma.user.findUniqueOrThrow({
+    where: { email: "dealer.dev@bumayed.local" },
+  });
+  const individual = await prisma.user.findUniqueOrThrow({
+    where: { email: "seller.dev@bumayed.local" },
+  });
+  const cities = await prisma.city.findMany({ include: { emirate: true } });
+  const models = await prisma.vehicleModel.findMany({
+    where: { make: { isActive: true } },
+    include: {
+      trims: true,
+      make: { include: { category: true } },
+    },
+    orderBy: [{ make: { slug: "asc" } }, { slug: "asc" }],
+  });
+
+  let created = 0;
+  for (const category of Object.values(VehicleCategory)) {
+    const pool = models.filter((m) => m.make.category.code === category);
+    if (pool.length === 0) continue;
+    const count = BULK_COUNTS[category];
+    const photos = BULK_PHOTOS[category];
+
+    for (let i = 0; i < count; i++) {
+      const model = pool[i % pool.length]!;
+      const trim = model.trims[i % Math.max(model.trims.length, 1)];
+      const city = cities[i % cities.length]!;
+      const year = 2016 + (i % 10);
+      const isNew = i % 9 === 0;
+      const seller = i % 3 === 0 ? individual : dealer;
+      const slug = `bulk-${category.toLowerCase()}-${String(i + 1).padStart(2, "0")}`;
+      const title = `${model.make.nameEn} ${model.nameEn}${trim ? ` ${trim.nameEn}` : ""} ${year}`;
+      const photo = photos[i % photos.length]!;
+      const status =
+        i % 15 === 0
+          ? ListingStatus.PENDING
+          : i % 13 === 0
+            ? ListingStatus.SOLD
+            : ListingStatus.ACTIVE;
+      const priceAed =
+        category === VehicleCategory.BOATS
+          ? 28000 + i * 95000
+          : category === VehicleCategory.MOTORCYCLES
+            ? 12000 + i * 6500
+            : 42000 + ((i * 37) % 80) * 8500;
+      const specs: Prisma.InputJsonValue =
+        category === VehicleCategory.CARS
+          ? {
+              regionalSpec: CAR_SPECS[i % CAR_SPECS.length],
+              bodyType: /patrol|land-cruiser|g-class|x5|lx/i.test(model.slug)
+                ? "SUV"
+                : "Sedan",
+              transmission: i % 7 === 0 ? "MANUAL" : "AUTOMATIC",
+              fuelType: FUELS[i % FUELS.length],
+              colour: CAR_COLOURS[i % CAR_COLOURS.length],
+              condition: isNew ? "NEW" : "USED",
+              warranty: i % 2 === 0,
+            }
+          : category === VehicleCategory.MOTORCYCLES
+            ? {
+                engineCapacityCc: 300 + (i % 8) * 200,
+                motorcycleType: MOTO_TYPES[i % MOTO_TYPES.length],
+                condition: isNew ? "NEW" : "USED",
+              }
+            : {
+                boatType: BOAT_TYPES[i % BOAT_TYPES.length],
+                lengthFt: 12 + (i % 12) * 5,
+                engineHours: isNew ? 0 : 80 + i * 35,
+                engineType: i % 2 === 0 ? "4-stroke" : "Twin diesel",
+                condition: isNew ? "NEW" : "USED",
+              };
+
+      const listing = await prisma.listing.upsert({
+        where: { slug },
+        update: {
+          title,
+          priceAed,
+          year,
+          status,
+          specs,
+          mileageKm:
+            category === VehicleCategory.BOATS
+              ? null
+              : isNew
+                ? 0
+                : 4000 + i * 3200,
+        },
+        create: {
+          sellerId: seller.id,
+          categoryId: model.make.categoryId,
+          status,
+          title,
+          slug,
+          description: `DEV SAMPLE. ${title} listed in ${city.emirate.nameEn}. Full service history available on request.`,
+          priceAed,
+          negotiable: i % 3 === 0,
+          makeId: model.makeId,
+          modelId: model.id,
+          trimId: trim?.id,
+          year,
+          mileageKm:
+            category === VehicleCategory.BOATS
+              ? null
+              : isNew
+                ? 0
+                : 4000 + i * 3200,
+          emirateId: city.emirateId,
+          cityId: city.id,
+          specs,
+          viewsCount: 12 + i * 7,
+          contactPhone: seller.id === dealer.id ? "+971501112233" : "+971509998877",
+          contactWhatsapp:
+            seller.id === dealer.id ? "+971501112233" : "+971509998877",
+          submittedAt: new Date(Date.now() - i * 3_600_000),
+          approvedAt: status === ListingStatus.ACTIVE ? new Date() : null,
+          soldAt: status === ListingStatus.SOLD ? new Date() : null,
+          expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(Date.now() - i * 3_600_000),
+          images: {
+            create: [
+              {
+                objectKey: `seed/${photo}/1.jpg`,
+                sortOrder: 0,
+                isPrimary: true,
+                mime: "image/jpeg",
+              },
+            ],
+          },
+        },
+      });
+
+      if (status === ListingStatus.ACTIVE && i % 6 === 1) {
+        const existing = await prisma.featuredPromotion.findFirst({
+          where: {
+            listingId: listing.id,
+            type: PromotionType.FEATURED,
+            status: "ACTIVE",
+          },
+        });
+        if (!existing) {
+          await prisma.featuredPromotion.create({
+            data: {
+              listingId: listing.id,
+              type: PromotionType.FEATURED,
+              endsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
+      }
+      created += 1;
+    }
+  }
+
+  console.log(`Seeded ${created} bulk dummy listings.`);
+}
+
 async function main() {
   console.log("Seeding Bumayed…");
   await seedLocations();
@@ -918,6 +1098,7 @@ async function main() {
   await seedCommercialDraft();
   await seedContentDraft();
   await seedUsersAndListings(catalog);
+  await seedBulkListings();
   console.log("Seed complete.");
 }
 
