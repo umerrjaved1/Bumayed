@@ -76,5 +76,7 @@ export function publicUrlForKey(objectKey: string): string {
   if (env.STORAGE_PUBLIC_URL) {
     return `${env.STORAGE_PUBLIC_URL.replace(/\/$/, "")}/${objectKey}`;
   }
+  const seed = objectKey.match(/^seed\/([^/]+)\/1\.jpg$/);
+  if (seed) return `/seed-photos/${seed[1]}.jpg`;
   return `/uploads/${objectKey}`;
 }
