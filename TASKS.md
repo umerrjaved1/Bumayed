@@ -92,11 +92,11 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Performance pass (image opt, lazy load, indexes, N+1 audit, measured)
 
 ## Phase 10 — Comprehensive QA
-- [ ] Functional matrix (playbook §14)
-- [ ] Localization: EN LTR / AR RTL, numerals, dates, AED formatting
-- [ ] Security matrix (§14)
-- [ ] Responsive matrix (5 widths)
-- [ ] Release-blocker checklist cleared
+- [x] Functional matrix (playbook §14) — see QA_TEST_PLAN.md. Photo upload fails on the live site
+- [x] Localization: EN LTR / AR RTL, numerals, dates, AED formatting
+- [x] Security matrix (§14) — forged webhook, role denials, bad upload type, invalid reset token
+- [x] Responsive matrix (5 widths) — no horizontal overflow at 375, 390, 768, 1280, 1536
+- [ ] Release-blocker checklist cleared — listing photos cannot be saved in production yet
 
 ## Phase 11 — Deployment & handover
 - [ ] Prod env vars, managed PostgreSQL, R2/S3, domain/DNS, email provider

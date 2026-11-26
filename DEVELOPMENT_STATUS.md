@@ -1,25 +1,24 @@
 # DEVELOPMENT_STATUS.md — Bumayed
 
 **Last updated:** 2026-11-26
-**Current phase:** Phase 9 built. Phase 10 QA not started.
+**Current phase:** Phase 10 QA executed. Phase 11 not started.
 
 ## Completed
 - Phase 0–6 approved
-- Phase 7 sandbox payments built (test later)
+- Phase 7 sandbox payments, exercised on the live site
 - Phase 8 notifications, content, moderation
-- Phase 9 SEO, accessibility, and a performance pass:
-  - Public pages have unique titles, descriptions, canonical URLs, Open Graph, and English/Arabic alternates
-  - `/sitemap.xml` lists public pages and active listings only
-  - `/robots.txt` blocks API, dashboard, admin, sign-in, and checkout; those pages also send noindex
-  - Active listing pages include structured data and photo alt text
-  - Skip link and visible keyboard focus
-  - Listing search already loads related rows in one query (no per-card query). Existing indexes cover status, category, location, price, and year. Card images lazy-load; the listing hero image loads first. Public pages stay dynamic so a changed listing is not served from a stale cache.
-  - No Lighthouse score was recorded in this pass. Do not treat the site as measured-fast until a lab run is done.
+- Phase 9 SEO, accessibility, and a performance pass. No Lighthouse score was recorded
+- Phase 10 pass recorded in QA_TEST_PLAN.md:
+  - Promotions and dealer packages grant only from the signed webhook. Refunds revoke them
+  - Search filters, favorites, reports, listing submit/approve/remove, and admin permission checks passed
+  - English LTR and Arabic RTL, with AED prices, checked at five widths
 
 ## Still open
-- Phase 7 sandbox payment test, then a real provider
+- Listing photos will use Cloudflare R2 on umerr.javed1@gmail.com. The upload code is ready; the bucket and API token are not connected yet, so live uploads still fail until those exist
+- Email delivery, so password-reset links are not received. OTP stays off
+- Not enough listings to show a second search page
 - Client approval of notification copy and the prohibited-listing word list
-- Phase 10 QA
+- A real payment provider
 
 ## Live
 https://bumayed.vercel.app
