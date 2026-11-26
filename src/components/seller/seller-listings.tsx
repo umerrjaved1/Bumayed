@@ -117,6 +117,13 @@ export function SellerListings() {
               >
                 {t("view")}
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                render={<Link href={`/dashboard/listings/${l.id}/promote`} />}
+              >
+                {t("promote")}
+              </Button>
               {(
                 [
                   ["submit", "actions.submit"],

@@ -41,7 +41,7 @@ const envSchema = z.object({
   SMS_PROVIDER_API_KEY: z.string().optional(),
 
   // Phase 7 — payments (provider selected by client: telr | ni | stripe)
-  PAYMENT_PROVIDER: z.enum(["telr", "ni", "stripe"]).optional(),
+  PAYMENT_PROVIDER: z.enum(["sandbox", "telr", "ni", "stripe"]).default("sandbox"),
   PAYMENT_PROVIDER_API_KEY: z.string().optional(),
   PAYMENT_PROVIDER_WEBHOOK_SECRET: z.string().optional(),
 

@@ -3,6 +3,7 @@ import { parseVideoUrl } from "@/lib/video";
 import { toPublicDto } from "./mappers";
 import { assertCanManageListing, type SessionUser } from "./policies";
 import * as repo from "./repository";
+import { assertListingQuota } from "@/modules/payments/service";
 import { slugifyTitle } from "./slug";
 import { transitionListing } from "./service";
 import type { ListingWriteInput } from "./write-schemas";
@@ -35,6 +36,7 @@ export async function createSellerListing(input: {
   user: SessionUser;
   data: ListingWriteInput;
 }) {
+  await assertListingQuota(input.user);
   const category = await repo.findCategoryByCode(input.data.category);
   if (!category) throw new Error("INVALID_CATEGORY");
 

@@ -9,6 +9,12 @@ const STATUS: Record<string, number> = {
   CANNOT_SELF: 400,
   LAST_SUPER_ADMIN: 400,
   INVALID_TRANSITION: 400,
+  INVALID_SIGNATURE: 401,
+  WEBHOOK_SECRET_MISSING: 500,
+  LISTING_NOT_ACTIVE: 400,
+  PRICE_UNAVAILABLE: 400,
+  PACKAGE_UNAVAILABLE: 400,
+  QUOTA_EXCEEDED: 403,
 };
 
 export function adminErrorResponse(err: unknown, fallbackMessage: string) {

@@ -69,6 +69,11 @@ export default async function DashboardPage({
               >
                 {t("postAd")}
               </Button>
+              {session.user.role === "DEALER" ? (
+                <Button variant="outline" render={<Link href="/dashboard/packages" />}>
+                  {t("packagesNav")}
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>

@@ -299,6 +299,7 @@
     "listingsSoon": "Listing management arrives in Phase 5. You can still start a draft.",
     "listingCount": "{count, plural, =0 {No listings yet} one {# listing} other {# listings}}",
     "manageListings": "Manage listings",
+    "packagesNav": "Dealer packages",
     "favoritesNav": "Favorites",
     "viewFavorites": "View favorites",
     "postAd": "Post an Ad",
@@ -410,7 +411,7 @@
     "verification": "Verification",
     "verificationHint": "Verified badge appears only after admin approval of your trade documents.",
     "package": "Package",
-    "noPackage": "No active dealer package yet. Packages ship with payments in Phase 7.",
+    "noPackage": "No active dealer package yet.",
     "renews": "Ends",
     "slotsUsed": "Featured slots {used}/{total}",
     "quotaUsed": "Listings this period {used}/{total}",
@@ -428,6 +429,42 @@
     "saveOk": "Profile saved",
     "saveError": "Could not save profile",
     "noProfile": "No dealer profile found for this account."
+  },
+  "checkout": {
+    "eyebrow": "Sandbox checkout",
+    "title": "Payment simulation",
+    "body": "This sandbox stands in until a payment provider is chosen. A promotion or package is activated only after the signed webhook, not when you leave this page.",
+    "success": "Simulate success",
+    "fail": "Simulate failure",
+    "cancel": "Simulate cancel",
+    "refund": "Simulate refund",
+    "recorded": "Provider event recorded",
+    "result": "Webhook result",
+    "error": "Could not record the payment event",
+    "back": "Back to dashboard"
+  },
+  "packages": {
+    "title": "Dealer packages",
+    "subtitle": "Prices and quotas come from the database. Checkout uses the sandbox until a provider is selected.",
+    "days": "days",
+    "slots": "{count} featured slots",
+    "unlimited": "unlimited listings",
+    "quota": "{count} listings / period",
+    "buy": "Buy",
+    "error": "Could not start checkout"
+  },
+  "promote": {
+    "title": "Promote listing",
+    "subtitle": "Prices and durations are configured in the database.",
+    "days": "days",
+    "buy": "Continue",
+    "slotUsed": "Featured slot from your package applied",
+    "error": "Could not start promotion",
+    "types": {
+      "FEATURED": "Featured",
+      "PREMIUM": "Premium",
+      "URGENT": "Urgent"
+    }
   },
   "wizard": {
     "title": "Post an Ad",
@@ -495,6 +532,7 @@
     "title": "My listings",
     "new": "Post an Ad",
     "view": "View",
+    "promote": "Promote",
     "empty": "No listings in this tab yet.",
     "loading": "Loading…",
     "error": "Something went wrong.",

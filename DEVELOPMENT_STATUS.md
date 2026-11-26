@@ -1,29 +1,25 @@
 # DEVELOPMENT_STATUS.md — Bumayed
 
-**Last updated:** 2026-11-25
-**Current phase:** Phase 6 — complete, **awaiting owner approval gate**
+**Last updated:** 2026-11-26
+**Current phase:** Phase 7 — sandbox payments built, **awaiting client approval of the sandbox flow**
 
 ## Completed
-- Phase 0–5 ✅ approved
-- Phase 6 dealer + admin:
-  - Role capabilities matrix (Moderator vs Super Admin) enforced server-side
-  - Admin dashboard counts + modules: listings moderation, users, dealers, reports, catalog, locations, commercial, content, admins, audit log
-  - Listing approve / reject (with reason) / remove / feature (7-day gift)
-  - Audit log on sensitive actions
-  - Dealer dashboard: verification status, inventory stats, package placeholder, editable business profile
-  - Public report create API wired to listing detail + admin resolve queue
-  - DEV accounts: `admin.dev@` / `moderator.dev@` (+ pending sample listing)
-  - Permission unit tests + typecheck / lint / build
+- Phase 0–6 ✅ approved (seller + admin/dealer gates approved 2026-11-26)
+- Phase 7 promotions, packages, payments:
+  - Featured / Premium / Urgent prices and durations read from `promotion_prices`
+  - Dealer packages from `packages`; featured slots consumed server-side; listing quota enforced when a package sets one (seeded packages stay unlimited)
+  - Sandbox checkout. A browser return does not activate anything
+  - Signed webhook grants, fails, cancels, or refunds. Duplicate `providerEventId` cannot grant twice
+  - Live: https://bumayed.vercel.app
 
 ## In progress
-- ⛔ **Approval gate:** owner review of admin & dealer workflows
+- ⛔ **Approval gate:** client reviews the sandbox payment flow before a real provider (Telr, Network International, or Stripe) and production credentials
 
 ## Next step (after gate)
-Phase 7 — promotions, packages, payments.
+Phase 8 — notifications, content, moderation polish.
 
 ## How to try
-1. Login: `admin.dev@bumayed.local` / `DevPassword123!` → `/en/admin`
-2. Open **Listings** (Pending) → approve the sample Camry
-3. Confirm it appears on the public marketplace
-4. Login: `dealer.dev@bumayed.local` → `/en/dashboard/dealer`
-5. Login: `moderator.dev@bumayed.local` — can moderate, cannot manage catalog/commercial/admins
+1. Login `dealer.dev@bumayed.local` / `DevPassword123!`
+2. Open an **active** listing → Promote, or `/en/dashboard/packages`
+3. On sandbox checkout, choose Simulate success
+4. Press success again — the second event must not add another promotion

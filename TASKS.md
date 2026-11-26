@@ -60,7 +60,7 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Seller dashboard: status tabs + submit/pause/reactivate/renew/sold/remove
 - [x] Favorites UI + API
 - [x] Slug + lifecycle tests; typecheck/lint/build clean
-- [ ] **Approval gate: seller journey**
+- [x] **Approval gate: seller journey** (approved 2026-11-26)
 
 ## Phase 6 — Dealer & admin
 - [x] Dealer dashboard (verification, package, slots, stats)
@@ -69,14 +69,14 @@ Scope changes must be recorded here and approved before implementation.
 - [x] Catalog, locations, commercial, content admin modules
 - [x] Admin roles (Super Admin / Moderator) + audit log
 - [x] Permission tests: authorized + unauthorized for every capability
-- [ ] **Approval gate: admin & dealer workflows**
+- [x] **Approval gate: admin & dealer workflows** (approved 2026-11-26)
 
 ## Phase 7 — Promotions, packages, payments
-- [ ] Promotion config (DB-driven prices/durations)
-- [ ] Dealer packages + server-side quota enforcement
-- [ ] Payment adapter + selected provider integration
-- [ ] Signature-verified webhook, idempotency, transaction history
-- [ ] Tests: success/fail/cancel/duplicate/delayed webhook
+- [x] Promotion config (DB-driven prices/durations)
+- [x] Dealer packages + server-side quota enforcement
+- [x] Sandbox payment adapter (real provider waits on client selection)
+- [x] Signature-verified webhook, idempotency, transaction history, refund revoke
+- [x] Tests: success/fail/cancel/duplicate/delayed webhook
 - [ ] **Approval gate: sandbox payment flow (client)**
 
 ## Phase 8 — Notifications, content, moderation
