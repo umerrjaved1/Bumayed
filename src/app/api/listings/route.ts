@@ -5,7 +5,12 @@ import type { VehicleCategoryCode } from "@/modules/listings/types";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIES: VehicleCategoryCode[] = ["cars", "motorcycles", "boats"];
+const CATEGORIES: VehicleCategoryCode[] = [
+  "cars",
+  "motorcycles",
+  "boats",
+  "plates",
+];
 
 /**
  * GET /api/listings?category=cars&keyword=&…&page=1

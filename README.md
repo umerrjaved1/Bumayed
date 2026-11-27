@@ -37,7 +37,10 @@ Health: `GET /api/health` · Search: `GET /api/listings?category=cars&…`
 
 > Host port **5433** is used so a local Windows PostgreSQL on 5432 does not clash.
 
-### DEV sample accounts (seed)
+### DEV sample accounts (seed) — LOCAL DEVELOPMENT ONLY
+
+> These accounts and passwords exist only in a local database. `npm run db:seed` now refuses to run against a remote database
+> (set `ALLOW_SEED_ON_REMOTE=1` to override). Never create them on a live site.
 
 | Email | Password | Role |
 |---|---|---|

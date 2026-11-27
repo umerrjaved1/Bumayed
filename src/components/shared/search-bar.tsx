@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Car,
   CircleGauge,
+  Hash,
   History,
   Loader2,
   MapPin,
@@ -33,9 +34,14 @@ const EMIRATE_CODES = [
   "RAK",
   "FUJ",
 ] as const;
-const CATEGORIES = ["cars", "motorcycles", "boats"] as const;
+const CATEGORIES = ["cars", "motorcycles", "boats", "plates"] as const;
 type Category = (typeof CATEGORIES)[number];
-const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
+const CATEGORY_ICONS = {
+  cars: Car,
+  motorcycles: CircleGauge,
+  boats: Ship,
+  plates: Hash,
+};
 
 /** Recent searches stay in this browser only (localStorage). */
 type RecentSearch = { category: Category; keyword: string; emirate: string };
@@ -76,13 +82,36 @@ function recentHref(r: RecentSearch) {
  * Hero search. `popular` (makes with live ads) and the visitor's own recent
  * searches show as one-tap chips underneath, so nobody faces an empty box.
  */
-export function SearchBar({ popular = [] }: { popular?: string[] }) {
+export function SearchBar({
+  popular = [],
+  regions = [],
+  country,
+  showPlates = true,
+}: {
+  popular?: string[];
+  /** Regions of the browsed country for the dropdown (none = hide it). */
+  regions?: { code: string; nameEn: string; nameAr: string }[];
+  country?: string;
+  /** Number plates only exist for the UAE. */
+  showPlates?: boolean;
+}) {
+  const locale = useLocale();
   const t = useTranslations("common");
   const te = useTranslations("emirates");
   const tn = useTranslations("nav");
   const router = useRouter();
   const [category, setCategory] = useState<Category>("cars");
   const [pending, startTransition] = useTransition();
+  /** Name of a region code: from the loaded list, else the UAE emirate names. */
+  function regionName(code: string): string {
+    const r = regions.find((x) => x.code === code);
+    if (r) return locale === "ar" ? r.nameAr : r.nameEn;
+    return (EMIRATE_CODES as readonly string[]).includes(code)
+      ? te(code as (typeof EMIRATE_CODES)[number])
+      : code;
+  }
+  const regionPlaceholder =
+    country === "AE" ? t("allEmirates") : t("allRegions");
   const [keyword, setKeyword] = useState("");
   const [emirate, setEmirate] = useState<string>("");
   const [recent, setRecent] = useState<RecentSearch[]>([]);
@@ -109,7 +138,8 @@ export function SearchBar({ popular = [] }: { popular?: string[] }) {
     );
   }
 
-  const activeIndex = CATEGORIES.indexOf(category);
+  const categories = CATEGORIES.filter((c) => c !== "plates" || showPlates);
+  const activeIndex = Math.max(0, categories.indexOf(category));
 
   const chips =
     recent.length > 0 || popular.length > 0 ? (
@@ -128,9 +158,7 @@ export function SearchBar({ popular = [] }: { popular?: string[] }) {
           >
             {r.keyword || tn(r.category)}
             {r.emirate && (
-              <span className="text-white/60">
-                · {te(r.emirate as (typeof EMIRATE_CODES)[number])}
-              </span>
+              <span className="text-white/60">· {regionName(r.emirate)}</span>
             )}
           </Link>
         ))}
@@ -161,17 +189,21 @@ export function SearchBar({ popular = [] }: { popular?: string[] }) {
         <div
           role="radiogroup"
           aria-label={t("search")}
-          className="relative mb-2 grid grid-cols-3 rounded-xl bg-muted p-1"
+          className="relative mb-2 grid rounded-xl bg-muted p-1"
+          style={{
+            gridTemplateColumns: `repeat(${categories.length}, minmax(0, 1fr))`,
+          }}
         >
           {/* Sliding selection pill */}
           <span
             aria-hidden
-            className="absolute inset-y-1 start-1 w-[calc((100%-0.5rem)/3)] rounded-lg bg-background shadow-sm ring-1 ring-foreground/5 transition-transform duration-500 ease-[var(--ease-spring)]"
+            className="absolute inset-y-1 start-1 rounded-lg bg-background shadow-sm ring-1 ring-foreground/5 transition-transform duration-500 ease-[var(--ease-spring)]"
             style={{
+              width: `calc((100% - 0.5rem) / ${categories.length})`,
               transform: `translateX(calc(${activeIndex * 100}% * var(--dir, 1)))`,
             }}
           />
-          {CATEGORIES.map((c) => {
+          {categories.map((c) => {
             const Icon = CATEGORY_ICONS[c];
             return (
               <button
@@ -180,7 +212,7 @@ export function SearchBar({ popular = [] }: { popular?: string[] }) {
                 role="radio"
                 aria-checked={category === c}
                 onClick={() => setCategory(c)}
-                className={`relative z-10 inline-flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors duration-300 ${
+                className={`relative z-10 inline-flex h-10 items-center justify-center gap-1 rounded-lg px-1 text-xs font-semibold transition-colors duration-300 sm:gap-2 sm:text-sm ${
                   category === c
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -210,27 +242,32 @@ export function SearchBar({ popular = [] }: { popular?: string[] }) {
               className="h-12 flex-1 rounded-xl border-0 bg-transparent ps-11 text-base text-card-foreground shadow-none placeholder:text-muted-foreground focus-visible:bg-muted/60 focus-visible:ring-0"
             />
           </div>
-          <div className="hidden h-8 w-px bg-border sm:block" aria-hidden />
-          <Select value={emirate} onValueChange={(v) => setEmirate(v ?? "")}>
-            <SelectTrigger
-              className="h-12 rounded-xl border-0 bg-transparent text-card-foreground shadow-none hover:bg-muted/60 data-[size=default]:h-12 sm:w-52"
-              aria-label={t("allEmirates")}
-            >
-              <MapPin className="size-4 text-accent" aria-hidden />
-              <SelectValue placeholder={t("allEmirates")}>
-                {(v: string) =>
-                  v ? te(v as (typeof EMIRATE_CODES)[number]) : t("allEmirates")
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {EMIRATE_CODES.map((code) => (
-                <SelectItem key={code} value={code}>
-                  {te(code)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {regions.length > 0 && (
+            <>
+              <div className="hidden h-8 w-px bg-border sm:block" aria-hidden />
+              <Select
+                value={emirate}
+                onValueChange={(v) => setEmirate(v ?? "")}
+              >
+                <SelectTrigger
+                  className="h-12 rounded-xl border-0 bg-transparent text-card-foreground shadow-none hover:bg-muted/60 data-[size=default]:h-12 sm:w-52"
+                  aria-label={regionPlaceholder}
+                >
+                  <MapPin className="size-4 text-accent" aria-hidden />
+                  <SelectValue placeholder={regionPlaceholder}>
+                    {(v: string) => (v ? regionName(v) : regionPlaceholder)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map((r) => (
+                    <SelectItem key={r.code} value={r.code}>
+                      {locale === "ar" ? r.nameAr : r.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
           <Button
             type="submit"
             variant="accent"

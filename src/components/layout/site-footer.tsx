@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ArrowUpRight, Languages, ShieldCheck } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { selectedCountry } from "@/lib/country";
 import { BrandMark } from "@/components/layout/brand-mark";
 
 export async function SiteFooter() {
@@ -9,6 +10,9 @@ export async function SiteFooter() {
   const tb = await getTranslations("common");
   const tc = await getTranslations("categories");
   const th = await getTranslations("home");
+  const country = await selectedCountry();
+  // Number plates are issued per UAE emirate, so only the UAE (or all of the GCC) lists them.
+  const showPlates = country === undefined || country === "AE";
 
   const columns = [
     {
@@ -17,6 +21,7 @@ export async function SiteFooter() {
         { href: "/cars", label: tc("cars") },
         { href: "/motorcycles", label: tc("motorcycles") },
         { href: "/boats", label: tc("boats") },
+        ...(showPlates ? [{ href: "/plates", label: tc("plates") }] : []),
       ],
     },
     {
@@ -44,7 +49,7 @@ export async function SiteFooter() {
       />
       <div
         aria-hidden
-        className="absolute -top-40 start-1/2 -z-10 size-[520px] -translate-x-1/2 rounded-full bg-primary/50 blur-[140px]"
+        className="absolute start-1/2 -top-40 -z-10 size-[520px] -translate-x-1/2 rounded-full bg-primary/50 blur-[140px]"
       />
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:px-8">
         <div>

@@ -1,28 +1,35 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { formatMoney } from "@/lib/currency";
+import type { CurrencyCode } from "@/lib/gcc";
 import { cn } from "@/lib/utils";
 
 type PriceDisplayProps = {
-  amountAed: number;
+  /** Whole units of `currency` (what the seller typed). */
+  amount?: number;
+  currency?: CurrencyCode;
+  /** Older callers pass dirhams only (packages, promotions, admin). */
+  amountAed?: number;
   className?: string;
 };
 
-/** Locale-aware AED price: `AED 245,000` (en) / `٢٤٥٬٠٠٠ د.إ.` style (ar-AE). */
-export function PriceDisplay({ amountAed, className }: PriceDisplayProps) {
+/**
+ * A price in its own currency: `SAR 85,000` (en) / `٨٥٬٠٠٠ ر.س.` (ar).
+ * Whole amounts only, with the currency's own symbol.
+ */
+export function PriceDisplay({
+  amount,
+  currency = "AED",
+  amountAed,
+  className,
+}: PriceDisplayProps) {
   const locale = useLocale();
-  const formatted = new Intl.NumberFormat(
-    locale === "ar" ? "ar-AE" : "en-AE",
-    {
-      style: "currency",
-      currency: "AED",
-      maximumFractionDigits: 0,
-    },
-  ).format(amountAed);
+  const value = amount ?? amountAed ?? 0;
 
   return (
     <span className={cn("font-semibold tabular-nums text-primary", className)}>
-      {formatted}
+      {formatMoney(value, currency, locale)}
     </span>
   );
 }

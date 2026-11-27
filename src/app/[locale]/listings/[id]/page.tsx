@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Fuel,
   Gauge,
+  Hash,
   MapPin,
   MessageCircle,
   Phone,
@@ -32,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PriceDisplay } from "@/components/shared/price-display";
+import { PlateBadge } from "@/components/shared/plate-badge";
 import { SpecList } from "@/components/shared/spec-list";
 import { ShareButton } from "@/components/shared/share-button";
 import { ReportDialog } from "@/components/shared/report-dialog";
@@ -46,7 +48,12 @@ import { Rail } from "@/components/motion/rail";
 import { railItem } from "@/components/motion/rail-item";
 import { publicMetadata } from "@/lib/seo";
 
-const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
+const CATEGORY_ICONS = {
+  cars: Car,
+  motorcycles: CircleGauge,
+  boats: Ship,
+  plates: Hash,
+};
 
 /** Metadata and the page both need the ad: load it once per request. */
 const loadListing = cache(
@@ -102,14 +109,16 @@ export default async function ListingDetailPage({
   // Independent lookups: run them together instead of one after another.
   const [favorited, similar] = await Promise.all([
     viewerId ? isFavorited(viewerId, listing.id) : Promise.resolve(false),
-    getSimilarListings(listing.category, listing.slug, 3),
+    getSimilarListings(listing.category, listing.slug, 3, listing.country),
   ]);
 
   const t = await getTranslations("detail");
   const tn = await getTranslations("nav");
   const tf = await getTranslations("filters");
+  // Number plates are issued per UAE emirate, so they keep the emirate names.
   const te = await getTranslations("emirates");
   const tl = await getTranslations("listing");
+  const tp = await getTranslations("plates");
   const activeLocale = await getLocale();
   const previewMessage =
     visible.status === "PENDING"
@@ -123,80 +132,112 @@ export default async function ListingDetailPage({
             : null;
 
   const Icon = CATEGORY_ICONS[listing.category];
+  const plate =
+    listing.category === "plates" &&
+    listing.plateEmirate &&
+    listing.plateCode &&
+    listing.plateNumber
+      ? {
+          emirate: listing.plateEmirate,
+          code: listing.plateCode,
+          number: listing.plateNumber,
+          type: listing.plateType ?? "private",
+        }
+      : null;
+  const plateLabel = plate
+    ? tp("label", {
+        emirate: te(plate.emirate),
+        code: plate.code,
+        number: plate.number,
+      })
+    : "";
   const video = listing.videoUrl ? parseVideoUrl(listing.videoUrl) : null;
   const nf = new Intl.NumberFormat(activeLocale === "ar" ? "ar-AE" : "en-AE");
 
   // Spec rows — only fields that exist for this listing/category
-  const specs: { label: string; value: string }[] = [
-    { label: t("make"), value: listing.make },
-    { label: t("model"), value: listing.model },
-    ...(listing.trim ? [{ label: t("trim"), value: listing.trim }] : []),
-    { label: t("year"), value: String(listing.year) },
-    ...(listing.mileageKm != null
-      ? [
-          {
-            label: t("mileage"),
-            value: `${nf.format(listing.mileageKm)} ${t("km")}`,
-          },
-        ]
-      : []),
-    ...(listing.transmission
-      ? [{ label: tf("transmission"), value: tf(listing.transmission) }]
-      : []),
-    ...(listing.fuelType
-      ? [{ label: tf("fuelType"), value: tf(listing.fuelType) }]
-      : []),
-    ...(listing.regionalSpec
-      ? [{ label: tf("regionalSpec"), value: tf(listing.regionalSpec) }]
-      : []),
-    ...(listing.bodyType
-      ? [{ label: t("bodyType"), value: listing.bodyType }]
-      : []),
-    ...(listing.colour ? [{ label: t("colour"), value: listing.colour }] : []),
-    ...(listing.engineCc
-      ? [
-          {
-            label: t("engineCc"),
-            value: `${nf.format(listing.engineCc)} ${t("cc")}`,
-          },
-        ]
-      : []),
-    ...(listing.motoType
-      ? [{ label: tf("motoType"), value: tf(listing.motoType) }]
-      : []),
-    ...(listing.boatType
-      ? [{ label: tf("boatType"), value: tf(listing.boatType) }]
-      : []),
-    ...(listing.lengthFt
-      ? [
-          {
-            label: t("lengthFt"),
-            value: `${nf.format(listing.lengthFt)} ${t("ft")}`,
-          },
-        ]
-      : []),
-    ...(listing.engineHours
-      ? [
-          {
-            label: t("engineHours"),
-            value: `${nf.format(listing.engineHours)} ${t("hours")}`,
-          },
-        ]
-      : []),
-    ...(listing.engineType
-      ? [{ label: t("engineType"), value: listing.engineType }]
-      : []),
-    { label: tf("condition"), value: tf(listing.condition) },
-    ...(listing.warranty !== undefined
-      ? [
-          {
-            label: t("warranty"),
-            value: listing.warranty ? t("warrantyYes") : t("warrantyNo"),
-          },
-        ]
-      : []),
-  ];
-
+  const plateSpecs: { label: string; value: string }[] = plate
+    ? [
+        { label: tp("emirate"), value: te(plate.emirate) },
+        { label: tp("code"), value: plate.code },
+        { label: tp("number"), value: plate.number },
+        { label: tp("digits"), value: String(plate.number.length) },
+        { label: tp("typeLabel"), value: tp(`type.${plate.type}`) },
+      ]
+    : [];
+  const vehicleSpecs: { label: string; value: string }[] = plate
+    ? []
+    : [
+        { label: t("make"), value: listing.make },
+        { label: t("model"), value: listing.model },
+        ...(listing.trim ? [{ label: t("trim"), value: listing.trim }] : []),
+        { label: t("year"), value: String(listing.year) },
+        ...(listing.mileageKm != null
+          ? [
+              {
+                label: t("mileage"),
+                value: `${nf.format(listing.mileageKm)} ${t("km")}`,
+              },
+            ]
+          : []),
+        ...(listing.transmission
+          ? [{ label: tf("transmission"), value: tf(listing.transmission) }]
+          : []),
+        ...(listing.fuelType
+          ? [{ label: tf("fuelType"), value: tf(listing.fuelType) }]
+          : []),
+        ...(listing.regionalSpec
+          ? [{ label: tf("regionalSpec"), value: tf(listing.regionalSpec) }]
+          : []),
+        ...(listing.bodyType
+          ? [{ label: t("bodyType"), value: listing.bodyType }]
+          : []),
+        ...(listing.colour
+          ? [{ label: t("colour"), value: listing.colour }]
+          : []),
+        ...(listing.engineCc
+          ? [
+              {
+                label: t("engineCc"),
+                value: `${nf.format(listing.engineCc)} ${t("cc")}`,
+              },
+            ]
+          : []),
+        ...(listing.motoType
+          ? [{ label: tf("motoType"), value: tf(listing.motoType) }]
+          : []),
+        ...(listing.boatType
+          ? [{ label: tf("boatType"), value: tf(listing.boatType) }]
+          : []),
+        ...(listing.lengthFt
+          ? [
+              {
+                label: t("lengthFt"),
+                value: `${nf.format(listing.lengthFt)} ${t("ft")}`,
+              },
+            ]
+          : []),
+        ...(listing.engineHours
+          ? [
+              {
+                label: t("engineHours"),
+                value: `${nf.format(listing.engineHours)} ${t("hours")}`,
+              },
+            ]
+          : []),
+        ...(listing.engineType
+          ? [{ label: t("engineType"), value: listing.engineType }]
+          : []),
+        { label: tf("condition"), value: tf(listing.condition) },
+        ...(listing.warranty !== undefined
+          ? [
+              {
+                label: t("warranty"),
+                value: listing.warranty ? t("warrantyYes") : t("warrantyNo"),
+              },
+            ]
+          : []),
+      ];
+  const specs = plate ? plateSpecs : vehicleSpecs;
 
   const postedDate = new Intl.DateTimeFormat(
     activeLocale === "ar" ? "ar-AE" : "en-AE",
@@ -212,25 +253,44 @@ export default async function ListingDetailPage({
     }),
   )}`;
   const sellerName = listing.seller.dealerName ?? listing.seller.name;
-  const locationLabel =
-    cityName === te(listing.emirate) ||
-    listing.city.toLowerCase() === listing.emirate.toLowerCase() ||
-    listing.city.toLowerCase() === te(listing.emirate).toLowerCase()
-      ? te(listing.emirate)
-      : `${cityName}${activeLocale === "ar" ? "، " : ", "}${te(listing.emirate)}`;
+  // Region and city names come from the database, so every GCC country works.
+  const regionName =
+    activeLocale === "ar" ? listing.regionAr : listing.regionEn;
+  const sameAsRegion =
+    cityName === regionName ||
+    listing.city.toLowerCase() === listing.regionEn.toLowerCase();
+  const locationLabel = sameAsRegion
+    ? regionName
+    : `${cityName}${activeLocale === "ar" ? "، " : ", "}${regionName}`;
 
   // Quick-glance facts shown as chips under the title.
-  const highlights = [
-    { icon: Calendar, label: String(listing.year) },
-    ...(listing.mileageKm != null
-      ? [{ icon: Gauge, label: `${nf.format(listing.mileageKm)} ${t("km")}` }]
-      : []),
-    ...(listing.transmission
-      ? [{ icon: Cog, label: tf(listing.transmission) }]
-      : []),
-    ...(listing.fuelType ? [{ icon: Fuel, label: tf(listing.fuelType) }] : []),
-    { icon: Sparkles, label: tf(listing.condition) },
-  ];
+  const highlights = plate
+    ? [
+        { icon: Hash, label: tp(`type.${plate.type}`) },
+        {
+          icon: Hash,
+          label: tp("digitsCount", { count: plate.number.length }),
+        },
+        { icon: MapPin, label: te(plate.emirate) },
+      ]
+    : [
+        { icon: Calendar, label: String(listing.year) },
+        ...(listing.mileageKm != null
+          ? [
+              {
+                icon: Gauge,
+                label: `${nf.format(listing.mileageKm)} ${t("km")}`,
+              },
+            ]
+          : []),
+        ...(listing.transmission
+          ? [{ icon: Cog, label: tf(listing.transmission) }]
+          : []),
+        ...(listing.fuelType
+          ? [{ icon: Fuel, label: tf(listing.fuelType) }]
+          : []),
+        { icon: Sparkles, label: tf(listing.condition) },
+      ];
 
   const badges =
     listing.featured || listing.urgent ? (
@@ -263,6 +323,11 @@ export default async function ListingDetailPage({
             slug: listing.slug,
             category: listing.category,
             title: listing.title,
+            price: listing.price,
+            currency: listing.currency,
+            country: listing.country,
+            regionEn: listing.regionEn,
+            regionAr: listing.regionAr,
             priceAed: listing.priceAed,
             negotiable: listing.negotiable,
             year: listing.year,
@@ -272,6 +337,10 @@ export default async function ListingDetailPage({
             photoCount: listing.photoCount,
             featured: listing.featured,
             urgent: listing.urgent,
+            plateEmirate: listing.plateEmirate,
+            plateCode: listing.plateCode,
+            plateNumber: listing.plateNumber,
+            plateType: listing.plateType,
           }}
         />
       )}
@@ -280,17 +349,24 @@ export default async function ListingDetailPage({
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": listing.category === "boats" ? "Product" : "Vehicle",
+            "@type":
+              listing.category === "boats" || listing.category === "plates"
+                ? "Product"
+                : "Vehicle",
             name: listing.title,
             description: listing.description.slice(0, 300),
             image: listing.photos,
-            brand: listing.make,
-            model: listing.model,
-            vehicleModelDate: listing.year,
+            ...(plate
+              ? {}
+              : {
+                  brand: listing.make,
+                  model: listing.model,
+                  vehicleModelDate: listing.year,
+                }),
             offers: {
               "@type": "Offer",
-              priceCurrency: "AED",
-              price: listing.priceAed,
+              priceCurrency: listing.currency,
+              price: listing.price,
               availability: "https://schema.org/InStock",
             },
           }),
@@ -314,24 +390,39 @@ export default async function ListingDetailPage({
             >
               {tn(listing.category)}
             </Link>
-            <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
-            <Link
-              href={`/${listing.category}?make=${encodeURIComponent(listing.make)}`}
-              className="transition-colors hover:text-foreground"
-            >
-              {listing.make}
-            </Link>
+            {!plate && (
+              <>
+                <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+                <Link
+                  href={`/${listing.category}?make=${encodeURIComponent(listing.make)}`}
+                  className="transition-colors hover:text-foreground"
+                >
+                  {listing.make}
+                </Link>
+              </>
+            )}
           </nav>
           <BackButton
             fallbackHref={`/${listing.category}`}
             label={t("backToResults")}
             className="absolute start-0 top-3 z-20 sm:hidden"
           />
-          {listing.photos.length > 0 ? (
+          {plate && (
+            <div className="relative -mx-4 mb-4 flex aspect-[16/9] items-center justify-center overflow-hidden bg-gradient-to-br from-primary/85 to-ink sm:mx-0 sm:aspect-[16/7] sm:rounded-2xl">
+              <PlateBadge {...plate} size="lg" label={plateLabel} />
+              {badges && (
+                <div className="absolute start-3 top-3 flex gap-1.5">
+                  {badges}
+                </div>
+              )}
+            </div>
+          )}
+          {plate && listing.photos.length === 0 ? null : listing.photos.length >
+            0 ? (
             <ListingGallery
               photos={listing.photos}
               title={listing.title}
-              badges={badges}
+              badges={plate ? null : badges}
             />
           ) : (
             <div className="relative -mx-4 flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-primary/85 to-ink sm:mx-0 sm:aspect-[16/10] sm:rounded-2xl">
@@ -358,7 +449,8 @@ export default async function ListingDetailPage({
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <PriceDisplay
-                amountAed={listing.priceAed}
+                amount={listing.price}
+                currency={listing.currency}
                 className="font-heading text-[1.75rem] font-extrabold sm:text-3xl"
               />
               {listing.negotiable && (
@@ -381,7 +473,7 @@ export default async function ListingDetailPage({
             {/* Key facts */}
             <ul
               aria-label={t("keyFacts")}
-              className="scrollbar-none -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0"
+              className="-mx-4 mt-4 scrollbar-none flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0"
             >
               {highlights.map(({ icon: HIcon, label }) => (
                 <li
@@ -546,10 +638,11 @@ export default async function ListingDetailPage({
 
       {/* Phones: contact stays one tap away while scrolling */}
       <div className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 lg:hidden">
-        <div className="glass mx-auto flex max-w-xl items-center gap-2 rounded-[1.4rem] border border-foreground/[0.06] p-2 ps-4 shadow-[0_18px_40px_-18px_oklch(0.2_0.05_258/0.45)]">
+        <div className="mx-auto flex max-w-xl items-center gap-2 rounded-[1.4rem] border border-foreground/[0.06] p-2 ps-4 shadow-[0_18px_40px_-18px_oklch(0.2_0.05_258/0.45)] glass">
           <div className="min-w-0 flex-1">
             <PriceDisplay
-              amountAed={listing.priceAed}
+              amount={listing.price}
+              currency={listing.currency}
               className="block truncate font-heading text-base font-extrabold"
             />
             <p className="truncate text-xs text-muted-foreground">

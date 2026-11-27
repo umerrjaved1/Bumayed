@@ -1,6 +1,6 @@
 {
   "common": {
-    "brand": "Bumayed",
+    "brand": "BuMayed",
     "tagline": "UAE Motors Marketplace",
     "postAd": "Post an Ad",
     "login": "Log in",
@@ -14,7 +14,8 @@
     "retry": "Retry",
     "popularSearches": "Popular",
     "recentSearches": "Recent",
-    "clear": "Clear"
+    "clear": "Clear",
+    "allRegions": "All regions"
   },
   "nav": {
     "home": "Home",
@@ -26,7 +27,8 @@
     "faq": "FAQ",
     "terms": "Terms & Conditions",
     "privacy": "Privacy Policy",
-    "contact": "Contact"
+    "contact": "Contact",
+    "plates": "Number plates"
   },
   "home": {
     "heroTitle": "Find your next car, motorcycle or boat in the UAE",
@@ -36,7 +38,7 @@
     "latestAds": "Latest ads",
     "popularMakes": "Popular makes",
     "dealerPromoTitle": "Are you a dealer?",
-    "dealerPromoBody": "Showcase your inventory to buyers across the UAE with a Bumayed dealer package.",
+    "dealerPromoBody": "Showcase your inventory to buyers across the UAE with a BuMayed dealer package.",
     "dealerPromoCta": "Explore dealer packages",
     "howItWorks": "How it works",
     "howStep1Title": "Post your ad",
@@ -64,7 +66,11 @@
     "trustBilingual": "English & Arabic",
     "ctaEyebrow": "For dealers",
     "recentTitle": "Recently viewed",
-    "recentSubtitle": "Pick up where you left off."
+    "recentSubtitle": "Pick up where you left off.",
+    "statRegions": "Regions covered",
+    "statCountries": "Countries",
+    "heroEyebrowGcc": "Live across the GCC",
+    "heroSubtitleGcc": "Browse moderated ads from dealers and private sellers across the Gulf."
   },
   "categories": {
     "cars": "Cars",
@@ -72,7 +78,9 @@
     "boats": "Boats",
     "carsDescription": "Sedans, SUVs, coupes and more from sellers across the UAE.",
     "motorcyclesDescription": "Sport, cruiser, touring and adventure bikes.",
-    "boatsDescription": "Boats, yachts and jet skis for every budget."
+    "boatsDescription": "Boats, yachts and jet skis for every budget.",
+    "plates": "Number plates",
+    "platesDescription": "Private, classic and motorcycle number plates from every emirate."
   },
   "listing": {
     "aed": "AED",
@@ -134,7 +142,11 @@
     "sailboat": "Sailboat",
     "apply": "Apply filters",
     "reset": "Reset",
-    "activeCount": "{count, plural, one {# filter applied} other {# filters applied}}"
+    "activeCount": "{count, plural, one {# filter applied} other {# filters applied}}",
+    "priceMinLabel": "Min price",
+    "priceMaxLabel": "Max price",
+    "region": "Region",
+    "allRegions": "All regions"
   },
   "sort": {
     "label": "Sort by",
@@ -218,7 +230,7 @@
     "prevPhoto": "Previous photo",
     "nextPhoto": "Next photo",
     "closePhoto": "Close photo viewer",
-    "whatsappMessage": "Hi, I'm interested in your {title} on Bumayed: {url}",
+    "whatsappMessage": "Hi, I'm interested in your {title} on BuMayed: {url}",
     "shareManual": "Copy this link to share the ad",
     "readMore": "Read more",
     "showLess": "Show less",
@@ -230,9 +242,9 @@
   "content": {
     "draftNotice": "Draft content — pending client approval before launch.",
     "about": {
-      "title": "About Bumayed",
-      "p1": "Bumayed is a UAE-built marketplace dedicated to motors: cars, motorcycles and boats. We connect buyers and sellers directly across all seven emirates — no middlemen, no hidden fees.",
-      "p2": "Whether you are an individual selling your car or a dealer managing a full showroom, Bumayed gives you the tools to reach serious buyers in both English and Arabic."
+      "title": "About BuMayed",
+      "p1": "BuMayed is a UAE-built marketplace dedicated to motors: cars, motorcycles and boats. We connect buyers and sellers directly across all seven emirates — no middlemen, no hidden fees.",
+      "p2": "Whether you are an individual selling your car or a dealer managing a full showroom, BuMayed gives you the tools to reach serious buyers in both English and Arabic."
     },
     "faq": {
       "title": "Frequently asked questions",
@@ -241,19 +253,19 @@
       "q2": "Is posting free?",
       "a2": "Yes — standard listings are free for individuals and dealers. Optional promotions (Featured, Premium, Urgent) give your ad extra visibility.",
       "q3": "How do I contact a seller?",
-      "a3": "Every listing has Call and WhatsApp buttons that connect you directly with the seller. Bumayed does not get involved in your negotiation.",
+      "a3": "Every listing has Call and WhatsApp buttons that connect you directly with the seller. BuMayed does not get involved in your negotiation.",
       "q4": "How does dealer verification work?",
       "a4": "Dealers submit their trade licence and documents through the dealer dashboard. Our team reviews them before a verified badge is shown."
     },
     "terms": {
       "title": "Terms & Conditions",
-      "p1": "These draft terms govern the use of the Bumayed marketplace. By using the site you agree to provide accurate listing information and to comply with UAE laws.",
-      "p2": "Bumayed is a classifieds platform: we do not take part in the sale, payment or delivery of vehicles and are not a party to any transaction between buyers and sellers.",
+      "p1": "These draft terms govern the use of the BuMayed marketplace. By using the site you agree to provide accurate listing information and to comply with UAE laws.",
+      "p2": "BuMayed is a classifieds platform: we do not take part in the sale, payment or delivery of vehicles and are not a party to any transaction between buyers and sellers.",
       "p3": "Final legal wording will be provided and approved by the client before launch."
     },
     "privacy": {
       "title": "Privacy Policy",
-      "p1": "This draft policy explains what data Bumayed collects (account details, listings, contact preferences) and why: to operate the marketplace and connect buyers with sellers.",
+      "p1": "This draft policy explains what data BuMayed collects (account details, listings, contact preferences) and why: to operate the marketplace and connect buyers with sellers.",
       "p2": "We never sell your personal data. Final wording will be provided and approved by the client before launch, in line with UAE data protection law."
     },
     "contact": {
@@ -269,11 +281,11 @@
     }
   },
   "footer": {
-    "aboutBlurb": "Bumayed is the UAE marketplace for cars, motorcycles and boats. Buy and sell directly, in English and Arabic.",
+    "aboutBlurb": "BuMayed is the UAE marketplace for cars, motorcycles and boats. Buy and sell directly, in English and Arabic.",
     "quickLinks": "Quick links",
     "categories": "Categories",
     "legal": "Legal",
-    "copyright": "© {year} Bumayed. All rights reserved."
+    "copyright": "© {year} BuMayed. All rights reserved."
   },
   "emirates": {
     "AUH": "Abu Dhabi",
@@ -297,25 +309,25 @@
     "goHome": "Go to homepage"
   },
   "meta": {
-    "homeTitle": "Bumayed — UAE Motors Marketplace",
+    "homeTitle": "BuMayed — UAE Motors Marketplace",
     "homeDescription": "Buy and sell cars, motorcycles and boats in the UAE. Bilingual, in English and Arabic.",
-    "brand": "Bumayed"
+    "brand": "BuMayed"
   },
   "auth": {
     "signIn": "Sign in",
     "signInSubtitle": "Use your email or mobile number and password.",
     "signingIn": "Signing in…",
     "createAccount": "Create account",
-    "registerSubtitle": "Sign up with your email address or mobile number.",
+    "registerSubtitle": "Sign up with your mobile number or email. Open to the whole GCC.",
     "creating": "Creating…",
     "registerSuccess": "Account created. Check your email to verify if you registered with email.",
     "identifier": "Email or mobile",
     "identifierPlaceholder": "name@email.com or +9715…",
     "password": "Password",
     "email": "Email",
-    "emailOptional": "Email (optional)",
-    "phoneOptional": "Mobile (optional)",
-    "emailOrPhoneHint": "Provide at least one of email or mobile (E.164, e.g. +971501234567).",
+    "emailOptional": "Email",
+    "phoneOptional": "Mobile",
+    "emailOrPhoneHint": "Add at least one of mobile or email.",
     "displayName": "Display name",
     "businessName": "Business name",
     "individual": "Individual",
@@ -346,7 +358,75 @@
     "individualHint": "For people selling their own vehicle.",
     "dealerHint": "For showrooms and businesses. Dealer packages unlock more ads and featured slots.",
     "passwordHint": "At least 8 characters.",
-    "acceptTerms": "I agree to the <terms>Terms & Conditions</terms> and <privacy>Privacy Policy</privacy>."
+    "acceptTerms": "I agree to the <terms>Terms & Conditions</terms> and <privacy>Privacy Policy</privacy>.",
+    "pendingAlertTitle": "One more step",
+    "pendingEmailTitle": "Check your inbox",
+    "pendingEmailBody": "We sent a verification link to {email}. Open it to activate your account.",
+    "pendingEmailBodyNoAddress": "We sent a verification link to the email on your account. Open it to activate your account.",
+    "pendingEmailAlert": "Your account is not active until you verify your email.",
+    "pendingStep1": "Open the email from BuMayed",
+    "pendingStep2": "Tap “Verify my email”",
+    "pendingStep3": "Come back here and sign in",
+    "pendingSpamTip": "Can’t see it? Check your spam or junk folder.",
+    "pendingLoginTitle": "Verify your email to sign in",
+    "pendingLoginBody": "Your email isn’t verified yet. Open the link we emailed you, or ask for a new one below.",
+    "pendingFailedTitle": "We couldn’t send the email",
+    "pendingFailedBody": "Your account was created, but the email didn’t go out. Tap below to try again.",
+    "openMail": "Open email app",
+    "resendEmail": "Resend email",
+    "resendIn": "Resend in {seconds}s",
+    "resentOk": "New link sent. Check your inbox.",
+    "resendRateLimited": "Too many requests. Please wait a few minutes and try again.",
+    "resendUnavailable": "Email isn’t available right now. Please contact us and we’ll help.",
+    "wrongEmail": "Wrong email? Start again",
+    "alreadyVerified": "I’ve verified — sign in",
+    "welcomeTitle": "Welcome to BuMayed!",
+    "welcomeEmailAlert": "Your account is ready. Email confirmation isn’t switched on yet, so there’s nothing to verify for now — we’ll let you know when it is.",
+    "welcomePhoneAlert": "Your mobile number {phone} is saved and your account is active. SMS verification is coming soon.",
+    "welcomePhoneAlertNoNumber": "Your mobile number is saved and your account is active. SMS verification is coming soon.",
+    "welcomeBody": "Start by posting your first ad, or browse what’s live.",
+    "postFirstAd": "Post your first ad",
+    "browseCars": "Browse cars",
+    "goDashboard": "Go to my account",
+    "accountCreated": "Account created",
+    "verifyDoneTitle": "Email verified!",
+    "verifyDoneBody": "Your account is active. Taking you to sign in in {seconds}s…",
+    "continueNow": "Continue now",
+    "verifyFailedTitle": "That link didn’t work",
+    "verifyFailedBody": "It may have expired or already been used. Request a new one below.",
+    "sendNewLink": "Send me a new link",
+    "mobileLabel": "Mobile number",
+    "emailLabel": "Email",
+    "contactHint": "Add at least one. Mobile sign-ups are active instantly; email sign-ups confirm by link.",
+    "phoneHelp": "Choose your country, then type your number the usual way.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "strengthLabel": "Password strength",
+    "strength0": "Too short",
+    "strength1": "Weak",
+    "strength2": "Fair",
+    "strength3": "Good",
+    "strength4": "Strong",
+    "errName": "Enter your name (at least 2 letters).",
+    "errBusiness": "Enter your business name.",
+    "errContact": "Add your mobile number or your email.",
+    "errPhone": "Enter a valid mobile number for the selected country, like {example}.",
+    "errEmail": "Enter a valid email address.",
+    "errPassword": "Use at least 8 characters.",
+    "errTerms": "Please accept the terms to continue.",
+    "fixFields": "Please fix the highlighted fields.",
+    "signingYouIn": "Account created. Signing you in…",
+    "registeredPleaseSignIn": "Account created. Sign in to continue.",
+    "existingAccountHint": "If you already registered with these details, sign in instead.",
+    "forgotInline": "Forgot your password?",
+    "forgotUnavailableTitle": "Password reset by email isn’t available yet",
+    "forgotUnavailableBody": "We’re still connecting our email service. Contact us and we’ll help you get back into your account.",
+    "contactSupport": "Contact us",
+    "bannerVerifyTitle": "Verify your email",
+    "bannerVerifyBody": "Confirm {email} to secure your account.",
+    "bannerSend": "Send verification email",
+    "countryCode": "Country code",
+    "loginCountryHint": "Which country is this number from?"
   },
   "dashboard": {
     "title": "Seller dashboard",
@@ -373,7 +453,7 @@
     "markRead": "Mark read"
   },
   "admin": {
-    "eyebrow": "Bumayed ops",
+    "eyebrow": "BuMayed ops",
     "title": "Admin panel",
     "subtitle": "Moderation, users, catalog and commercial controls.",
     "navLabel": "Admin sections",
@@ -547,7 +627,8 @@
     "categories": {
       "cars": "Cars",
       "motorcycles": "Motorcycles",
-      "boats": "Boats"
+      "boats": "Boats",
+      "plates": "Number plates"
     },
     "make": "Make",
     "model": "Model",
@@ -595,7 +676,11 @@
     "descriptionTooShort": "Description must be at least 20 characters.",
     "priceRequired": "Enter a price greater than 0.",
     "cityRequired": "Choose a city.",
-    "uploadError": "Image upload failed."
+    "uploadError": "Image upload failed.",
+    "country": "Country",
+    "region": "Region",
+    "priceLabel": "Price",
+    "phoneInvalid": "Enter a valid phone number for the selected country, or leave it empty."
   },
   "sellerListings": {
     "title": "My listings",
@@ -646,5 +731,31 @@
     "saved": "Saved",
     "account": "Account",
     "login": "Log in"
+  },
+  "plates": {
+    "label": "{emirate} plate {code} {number}",
+    "emirate": "Issuing emirate",
+    "code": "Plate code",
+    "number": "Plate number",
+    "digits": "Digits",
+    "digitsCount": "{count, plural, one {# digit} other {# digits}}",
+    "typeLabel": "Plate type",
+    "type": {
+      "private": "Private",
+      "motorcycle": "Motorcycle",
+      "classic": "Classic"
+    },
+    "searchNumber": "Plate number",
+    "searchNumberPlaceholder": "e.g. 777 or 1234",
+    "hint": "Code: 1–2 letters or digits (e.g. A or 12). Number: 1–5 digits.",
+    "codeInvalid": "Enter a plate code of 1–2 letters or digits.",
+    "numberInvalid": "Enter a plate number of 1–5 digits."
+  },
+  "country": {
+    "label": "Country",
+    "all": "All GCC",
+    "allHint": "Every country",
+    "change": "Change country",
+    "showing": "Showing ads in {country}"
   }
 }

@@ -12,7 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { FilterForm } from "./filter-form";
+import { FilterForm, type RegionOption } from "./filter-form";
 import type { ListingQuery, VehicleCategoryCode } from "@/modules/listings/types";
 
 /**
@@ -25,6 +25,7 @@ export function MobileFilterDrawer({
 }: {
   category: VehicleCategoryCode;
   makes: string[];
+  regions?: RegionOption[];
   values: ListingQuery;
   activeCount?: number;
 }) {

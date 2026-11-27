@@ -6,6 +6,7 @@ import {
   Car,
   ChevronRight,
   CircleGauge,
+  Hash,
   HelpCircle,
   Info,
   LayoutList,
@@ -19,6 +20,8 @@ import {
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { CountrySwitcher } from "@/components/layout/country-switcher";
+import type { GccCode } from "@/lib/gcc";
 import {
   Sheet,
   SheetContent,
@@ -44,15 +47,25 @@ type MobileNavProps = {
   links: readonly { href: string; label: string }[];
   brandLabel: string;
   account: MobileNavAccount;
+  /** Countries that are switched on, and the one being browsed (undefined = whole GCC). */
+  countries?: GccCode[];
+  selectedCountry?: GccCode;
 };
 
 const LINK_ICONS: Record<string, typeof Car> = {
   "/cars": Car,
   "/motorcycles": CircleGauge,
   "/boats": Ship,
+  "/plates": Hash,
 };
 
-export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
+export function MobileNav({
+  links,
+  brandLabel,
+  account,
+  countries = [],
+  selectedCountry,
+}: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const router = useRouter();
@@ -60,6 +73,7 @@ export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
   const locale = useLocale();
   const tn = useTranslations("nav");
   const tc = useTranslations("common");
+  const tCountry = useTranslations("country");
 
   const close = () => setOpen(false);
 
@@ -105,7 +119,7 @@ export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
         <SheetHeader className="relative overflow-hidden bg-ink p-5 pb-6 text-ink-foreground">
           <div
             aria-hidden
-            className="absolute -top-16 -end-10 size-48 rounded-full bg-accent/25 blur-3xl"
+            className="absolute -end-10 -top-16 size-48 rounded-full bg-accent/25 blur-3xl"
           />
           <SheetTitle className="relative flex items-center gap-2.5 text-start text-white">
             <BrandMark />
@@ -128,12 +142,17 @@ export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
                 {account.name.slice(0, 1).toUpperCase()}
               </span>
               <span className="flex-1">
-                <span className="block text-sm font-semibold">{account.name}</span>
+                <span className="block text-sm font-semibold">
+                  {account.name}
+                </span>
                 <span className="block text-xs text-white/55">
                   {account.labels.account}
                 </span>
               </span>
-              <ChevronRight className="size-4 text-white/50 rtl:rotate-180" aria-hidden />
+              <ChevronRight
+                className="size-4 text-white/50 rtl:rotate-180"
+                aria-hidden
+              />
             </Link>
           )}
         </SheetHeader>
@@ -175,6 +194,23 @@ export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
           })}
         </nav>
 
+        {countries.length > 1 && (
+          <section
+            aria-label={tCountry("label")}
+            className="mx-3 mb-2 border-t pt-3"
+          >
+            <p className="px-3 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {tCountry("label")}
+            </p>
+            <CountrySwitcher
+              variant="list"
+              countries={countries}
+              selected={selectedCountry}
+              onChosen={close}
+            />
+          </section>
+        )}
+
         <section
           aria-label={account.labels.account}
           className="mx-3 flex flex-col gap-1 border-t pt-3"
@@ -186,14 +222,20 @@ export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
                 onClick={close}
                 className={cn(rowClass, "hover:bg-muted")}
               >
-                <LayoutList className="size-5 text-muted-foreground" aria-hidden />
+                <LayoutList
+                  className="size-5 text-muted-foreground"
+                  aria-hidden
+                />
                 {account.labels.myListings}
               </Link>
               <button
                 type="button"
                 disabled={signingOut}
                 onClick={signOut}
-                className={cn(rowClass, "text-destructive hover:bg-destructive/10")}
+                className={cn(
+                  rowClass,
+                  "text-destructive hover:bg-destructive/10",
+                )}
               >
                 <LogOut className="size-5" aria-hidden />
                 {account.labels.signOut}
@@ -222,7 +264,10 @@ export function MobileNav({ links, brandLabel, account }: MobileNavProps) {
           )}
         </section>
 
-        <nav aria-label={tn("about")} className="mx-3 mt-2 mb-6 flex flex-col border-t pt-3">
+        <nav
+          aria-label={tn("about")}
+          className="mx-3 mt-2 mb-6 flex flex-col border-t pt-3"
+        >
           {secondary.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}

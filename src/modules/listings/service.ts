@@ -69,8 +69,9 @@ export async function getSimilarListings(
   category: VehicleCategoryCode,
   excludeSlug: string,
   limit = 3,
+  country?: string,
 ): Promise<ListingPublicDto[]> {
-  const rows = await repo.findSimilar(category, excludeSlug, limit);
+  const rows = await repo.findSimilar(category, excludeSlug, limit, country);
   return rows.map(toPublicDto);
 }
 
@@ -83,7 +84,12 @@ export async function getMakesWithListings(category: VehicleCategoryCode) {
   return repo.findMakesWithActiveListings(category);
 }
 
-const ALL_CATEGORIES: VehicleCategoryCode[] = ["cars", "motorcycles", "boats"];
+const ALL_CATEGORIES: VehicleCategoryCode[] = [
+  "cars",
+  "motorcycles",
+  "boats",
+  "plates",
+];
 
 /**
  * When a keyword finds nothing in one category, report the other categories

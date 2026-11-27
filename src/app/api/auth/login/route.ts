@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: "Invalid email/phone or password.",
-  EMAIL_NOT_VERIFIED: "Verify your email before signing in.",
+  EMAIL_NOT_VERIFIED: "Please verify your email to sign in. Check your inbox for the link.",
   ACCOUNT_DISABLED: "This account is suspended or blocked.",
   RATE_LIMITED: "Too many attempts. Try again later.",
   CredentialsSignin: "Invalid email/phone or password.",

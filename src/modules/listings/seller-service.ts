@@ -3,8 +3,11 @@ import { parseVideoUrl } from "@/lib/video";
 import { toPublicDto } from "./mappers";
 import { assertCanManageListing, type SessionUser } from "./policies";
 import * as repo from "./repository";
+import { isCurrency, maxPriceFor, toAedEquivalent } from "@/lib/currency";
+import type { CurrencyCode } from "@/lib/gcc";
 import { assertListingQuota } from "@/modules/payments/service";
 import { slugifyTitle } from "./slug";
+import { readPlateSpecs } from "./plates";
 import { transitionListing } from "./service";
 import type { ListingWriteInput } from "./write-schemas";
 import { CATEGORY_CODE_TO_ENUM } from "./types";
@@ -29,6 +32,65 @@ async function resolveVideo(videoUrl: string | null | undefined) {
     provider,
     originalUrl: parsed.watchUrl,
     embedUrl: parsed.embedUrl,
+  };
+}
+
+/**
+ * Plates have no make, model, year or mileage; their identity is the
+ * emirate + code + number. Store only those (plus the derived digit count the
+ * filters use) so a crafted request cannot attach vehicle fields to a plate.
+ */
+function normalizeCategoryFields(data: ListingWriteInput) {
+  if (data.category !== "plates") {
+    return {
+      specs: data.specs,
+      makeId: data.makeId ?? null,
+      modelId: data.modelId ?? null,
+      trimId: data.trimId ?? null,
+      year: data.year ?? null,
+      mileageKm: data.mileageKm ?? null,
+    };
+  }
+  const plate = readPlateSpecs(data.specs);
+  if (!plate) throw new Error("INVALID_PLATE");
+  return {
+    specs: {
+      plateEmirate: plate.emirate,
+      plateCode: plate.code,
+      plateNumber: plate.number,
+      plateType: plate.type,
+      plateDigits: plate.number.length,
+    },
+    makeId: null,
+    modelId: null,
+    trimId: null,
+    year: null,
+    mileageKm: null,
+  };
+}
+
+/**
+ * Price, currency and country for a write. The currency always comes from the
+ * region's country (a Saudi ad is in riyals whatever the client sent), and the
+ * AED equivalent is worked out here so filters and sorting stay correct.
+ */
+function resolvePricing(
+  data: ListingWriteInput,
+  region: { country: { code: string; currency: string; isActive: boolean } },
+) {
+  if (!region.country.isActive) throw new Error("COUNTRY_UNAVAILABLE");
+  const currency = region.country.currency as CurrencyCode;
+  if (!isCurrency(currency)) throw new Error("INVALID_PRICE");
+  const price = data.price ?? data.priceAed;
+  if (price == null || !Number.isInteger(price) || price <= 0) {
+    throw new Error("INVALID_PRICE");
+  }
+  if (price > maxPriceFor(currency)) throw new Error("INVALID_PRICE");
+  return {
+    price,
+    currency,
+    priceAed: toAedEquivalent(price, currency),
+    countryCode: region.country.code,
   };
 }
 
@@ -58,6 +120,7 @@ export async function createSellerListing(input: {
   const status = input.data.submit ? ListingStatus.PENDING : ListingStatus.DRAFT;
   const now = new Date();
 
+  const fields = normalizeCategoryFields(input.data);
   const row = await repo.createListing({
     seller: { connect: { id: input.user.id } },
     category: { connect: { id: category.id } },
@@ -65,17 +128,17 @@ export async function createSellerListing(input: {
     title: input.data.title,
     slug: slugifyTitle(input.data.title),
     description: input.data.description,
-    priceAed: input.data.priceAed,
+    ...resolvePricing(input.data, emirate),
     negotiable: input.data.negotiable,
-    make: input.data.makeId ? { connect: { id: input.data.makeId } } : undefined,
-    model: input.data.modelId ? { connect: { id: input.data.modelId } } : undefined,
-    trim: input.data.trimId ? { connect: { id: input.data.trimId } } : undefined,
-    year: input.data.year,
-    mileageKm: input.data.mileageKm ?? null,
+    make: fields.makeId ? { connect: { id: fields.makeId } } : undefined,
+    model: fields.modelId ? { connect: { id: fields.modelId } } : undefined,
+    trim: fields.trimId ? { connect: { id: fields.trimId } } : undefined,
+    year: fields.year,
+    mileageKm: fields.mileageKm,
     emirate: { connect: { id: emirate.id } },
     city: { connect: { id: input.data.cityId } },
     area: input.data.areaId ? { connect: { id: input.data.areaId } } : undefined,
-    specs: input.data.specs as Prisma.InputJsonValue,
+    specs: fields.specs as Prisma.InputJsonValue,
     contactPhone: emptyToNull(input.data.contactPhone),
     contactWhatsapp: emptyToNull(input.data.contactWhatsapp),
     submittedAt: status === ListingStatus.PENDING ? now : null,
@@ -164,30 +227,31 @@ ${input.data.description}`,
     submittedAt = new Date();
   }
 
+  const fields = normalizeCategoryFields(input.data);
   await repo.updateListing(input.listingId, {
     category: { connect: { id: category.id } },
     status: nextStatus,
     title: input.data.title,
     description: input.data.description,
-    priceAed: input.data.priceAed,
+    ...resolvePricing(input.data, emirate),
     negotiable: input.data.negotiable,
-    make: input.data.makeId
-      ? { connect: { id: input.data.makeId } }
+    make: fields.makeId
+      ? { connect: { id: fields.makeId } }
       : { disconnect: true },
-    model: input.data.modelId
-      ? { connect: { id: input.data.modelId } }
+    model: fields.modelId
+      ? { connect: { id: fields.modelId } }
       : { disconnect: true },
-    trim: input.data.trimId
-      ? { connect: { id: input.data.trimId } }
+    trim: fields.trimId
+      ? { connect: { id: fields.trimId } }
       : { disconnect: true },
-    year: input.data.year,
-    mileageKm: input.data.mileageKm ?? null,
+    year: fields.year,
+    mileageKm: fields.mileageKm,
     emirate: { connect: { id: emirate.id } },
     city: { connect: { id: input.data.cityId } },
     area: input.data.areaId
       ? { connect: { id: input.data.areaId } }
       : { disconnect: true },
-    specs: input.data.specs as Prisma.InputJsonValue,
+    specs: fields.specs as Prisma.InputJsonValue,
     contactPhone: emptyToNull(input.data.contactPhone),
     contactWhatsapp: emptyToNull(input.data.contactWhatsapp),
     submittedAt,

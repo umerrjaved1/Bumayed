@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { startNavigationProgress } from "@/components/layout/navigation-progress";
-import type { ListingSort } from "@/modules/listings/types";
+import type { ListingSort, VehicleCategoryCode } from "@/modules/listings/types";
 import {
   Select,
   SelectContent,
@@ -22,11 +22,14 @@ const SORTS: ListingSort[] = [
 ];
 
 export function SortSelect({
+  category,
   value,
   currentParams,
   className,
 }: {
   className?: string;
+  /** Plates have no mileage or model year, so those sorts are hidden. */
+  category?: VehicleCategoryCode;
   value: ListingSort;
   /** Serialized current search params (filters preserved on sort change). */
   currentParams: Record<string, string>;
@@ -50,7 +53,10 @@ export function SortSelect({
         <SelectValue>{(v: ListingSort) => t(v)}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {SORTS.map((s) => (
+        {SORTS.filter(
+          (s) =>
+            category !== "plates" || (s !== "mileageAsc" && s !== "yearDesc"),
+        ).map((s) => (
           <SelectItem key={s} value={s}>
             {t(s)}
           </SelectItem>

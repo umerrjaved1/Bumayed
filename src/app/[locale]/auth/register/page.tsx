@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { RegisterForm } from "@/components/auth/register-form";
+import { visitorGccCountry } from "@/lib/geo";
 
 export async function generateMetadata({
   params,
@@ -24,10 +25,14 @@ export default async function RegisterPage({
   const { type } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("auth");
+  const country = await visitorGccCountry();
 
   return (
     <AuthShell title={t("createAccount")} subtitle={t("registerSubtitle")}>
-      <RegisterForm initialType={type === "dealer" ? "dealer" : "individual"} />
+      <RegisterForm
+        initialType={type === "dealer" ? "dealer" : "individual"}
+        defaultDial={country.dial}
+      />
     </AuthShell>
   );
 }

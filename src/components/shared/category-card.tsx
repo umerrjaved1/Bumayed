@@ -10,6 +10,8 @@ type CategoryCardProps = {
   title: string;
   description: string;
   image?: string;
+  /** Shown instead of a photo, e.g. a sample number plate. */
+  visual?: React.ReactNode;
   countLabel?: string;
   ctaLabel?: string;
   className?: string;
@@ -22,6 +24,7 @@ export function CategoryCard({
   title,
   description,
   image,
+  visual,
   countLabel,
   ctaLabel,
   className,
@@ -46,6 +49,14 @@ export function CategoryCard({
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary to-ink" />
       )}
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/55 to-ink/5" />
+      {visual && (
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-[28%] -z-[5] flex justify-center transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-105 lg:top-[22%] lg:justify-end lg:pe-16"
+        >
+          {visual}
+        </div>
+      )}
 
       <div className="absolute start-6 top-6 flex items-center gap-2 sm:start-7 sm:top-7">
         <span className="glass-dark grid size-11 place-items-center rounded-2xl text-accent transition-all duration-500 ease-[var(--ease-spring)] group-hover:-rotate-6 group-hover:scale-110 group-hover:bg-accent group-hover:text-accent-foreground">

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
 import { ListingWizard } from "@/components/seller/listing-wizard";
+import { selectedCountry } from "@/lib/country";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +19,5 @@ export default async function NewListingPage({
       `/${locale}/auth/login?callbackUrl=${encodeURIComponent(`/${locale}/dashboard/listings/new`)}`,
     );
 
-  return <ListingWizard />;
+  return <ListingWizard defaultCountry={(await selectedCountry()) ?? "AE"} />;
 }

@@ -42,6 +42,7 @@ enum VehicleCategory {
   CARS
   MOTORCYCLES
   BOATS
+  PLATES
 }
 
 enum RegionalSpec {
@@ -366,9 +367,31 @@ model VehicleTrim {
 
 // ─── Locations ───────────────────────────────────────────────────────────────
 
+/// One of the six GCC countries. `isActive` controls which ones visitors can pick.
+model Country {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(2) // AE, SA, QA, KW, BH, OM
+  nameEn    String
+  nameAr    String
+  dialCode  String   @db.VarChar(4) // without "+", e.g. 966
+  currency  String   @db.VarChar(3) // AED, SAR, QAR, KWD, BHD, OMR
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  emirates Emirate[]
+
+  @@map("countries")
+}
+
+/// A first-level region of a country: an emirate in the UAE, a region in
+/// Saudi Arabia, a governorate in Kuwait, and so on. (Named "Emirate" for
+/// historical reasons; the UI calls it a region.)
 model Emirate {
   id        String   @id @default(uuid()) @db.Uuid
-  code      String   @unique @db.VarChar(3) // AUH, DXB, SHJ, AJM, UAQ, RAK, FUJ
+  code      String   @unique @db.VarChar(3) // globally unique, e.g. AUH, DXB, RUH, KWC
+  countryId String   @db.Uuid
+  country   Country  @relation(fields: [countryId], references: [id])
   nameEn    String
   nameAr    String
   createdAt DateTime @default(now())
@@ -379,6 +402,7 @@ model Emirate {
   userProfiles   UserProfile[]
   dealerProfiles DealerProfile[]
 
+  @@index([countryId])
   @@map("emirates")
 }
 
@@ -427,7 +451,13 @@ model Listing {
   title        String          @db.VarChar(120)
   slug         String          @unique
   description  String
-  priceAed     Int // AED, no decimals
+  /// What the seller typed: whole units of `currency` (e.g. SAR 85,000).
+  price        Int
+  currency     String          @default("AED") @db.VarChar(3)
+  /// AED equivalent of `price`. Used ONLY to filter and sort across countries.
+  priceAed     Int
+  /// Denormalised from the region's country, for fast per-country browsing.
+  countryCode  String          @default("AE") @db.VarChar(2)
   negotiable   Boolean         @default(false)
   makeId       String?         @db.Uuid
   make         VehicleMake?    @relation(fields: [makeId], references: [id])
@@ -468,6 +498,7 @@ model Listing {
   @@index([categoryId, makeId, modelId])
   @@index([emirateId, cityId])
   @@index([priceAed])
+  @@index([countryCode, status])
   @@index([year])
   @@index([sellerId, status])
   @@map("listings")

@@ -1,3 +1,5 @@
+import { gccByCode, type GccCode } from "@/lib/gcc";
+import { PLATE_CODE_RE, PLATE_DIGIT_COUNTS, PLATE_EMIRATES, PLATE_TYPES } from "./plates";
 import {
   type ListingQuery,
   type ListingSort,
@@ -37,11 +39,28 @@ function ordered(
   return min != null && max != null && min > max ? [max, min] : [min, max];
 }
 
+/**
+ * ?country=SA browses Saudi ads, ?country=all browses the whole GCC, and a
+ * missing or unknown value falls back to the visitor's saved country.
+ */
+export function parseCountry(
+  raw: string | string[] | undefined,
+  fallback?: GccCode,
+): GccCode | undefined {
+  const v = str(raw)?.toLowerCase();
+  if (v === "all") return undefined;
+  const country = gccByCode(v);
+  return country ? country.code : fallback;
+}
+
 /** Parse raw URL search params into a typed query (invalid values dropped). */
 export function parseListingQuery(
   searchParams: SearchParamsInput,
   category: VehicleCategoryCode,
+  /** Country to browse when the URL does not say (the visitor's saved country). */
+  defaultCountry?: GccCode,
 ): ListingQuery {
+  const country = parseCountry(searchParams.country, defaultCountry);
   const rawSort = str(searchParams.sort) as ListingSort | undefined;
   const condition = str(searchParams.condition);
   const sellerType = str(searchParams.sellerType);
@@ -53,6 +72,10 @@ export function parseListingQuery(
     num(searchParams.yearMin),
     num(searchParams.yearMax),
   );
+  const plateEmirate = str(searchParams.plateEmirate)?.toUpperCase();
+  const plateType = str(searchParams.plateType)?.toLowerCase();
+  const plateDigits = str(searchParams.plateDigits);
+  const plateCode = str(searchParams.plateCode)?.toUpperCase();
   return {
     category,
     keyword: str(searchParams.keyword),
@@ -62,6 +85,9 @@ export function parseListingQuery(
     yearMin,
     yearMax,
     mileageMax: num(searchParams.mileageMax),
+    country,
+    // Prices are typed in the browsed country's currency, or AED when browsing the whole GCC.
+    currency: country ? gccByCode(country)!.currency : "AED",
     emirate: str(searchParams.emirate),
     condition:
       condition === "new" || condition === "used" ? condition : undefined,
@@ -74,6 +100,16 @@ export function parseListingQuery(
     regionalSpec: str(searchParams.regionalSpec),
     motoType: str(searchParams.motoType),
     boatType: str(searchParams.boatType),
+    plateEmirate: (PLATE_EMIRATES as readonly string[]).includes(plateEmirate ?? "")
+      ? plateEmirate
+      : undefined,
+    plateType: (PLATE_TYPES as readonly string[]).includes(plateType ?? "")
+      ? plateType
+      : undefined,
+    plateDigits: (PLATE_DIGIT_COUNTS as readonly string[]).includes(plateDigits ?? "")
+      ? plateDigits
+      : undefined,
+    plateCode: plateCode && PLATE_CODE_RE.test(plateCode) ? plateCode : undefined,
     sort: rawSort && SORTS.includes(rawSort) ? rawSort : "newest",
     page: Math.max(1, num(searchParams.page) ?? 1),
   };

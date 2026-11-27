@@ -49,7 +49,7 @@ export function MobileTabBar({ signedIn, accountHref }: MobileTabBarProps) {
 
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
-  const isBrowse = ["/cars", "/motorcycles", "/boats"].some(
+  const isBrowse = ["/cars", "/motorcycles", "/boats", "/plates"].some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
   const favHref = signedIn

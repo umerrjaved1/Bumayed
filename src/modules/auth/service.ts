@@ -1,6 +1,11 @@
 import { Role, UserStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { appBaseUrl, sendEmail } from "@/lib/email";
+import {
+  actionEmailHtml,
+  appBaseUrl,
+  isEmailDeliveryConfigured,
+  sendEmail,
+} from "@/lib/email";
 import { hashPassword, verifyPassword } from "./password";
 import { consumeRateLimit } from "./rate-limit";
 import type { z } from "zod";
@@ -8,6 +13,69 @@ import type { registerSchema } from "./schemas";
 import { consumeToken, issueToken } from "./tokens";
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+/**
+ * What happened to verification at sign-up, so the next screen can tell the
+ * person exactly what to do:
+ * - email_sent: a link is on its way; they must click it before signing in
+ * - email_failed: the provider rejected the send; offer "send again"
+ * - email_unavailable: no email service is connected yet, so the account is
+ *   active right away and the email is confirmed later
+ * - phone_only: mobile number saved, account active (SMS verification is deferred)
+ */
+export type VerificationMode =
+  | "email_sent"
+  | "email_failed"
+  | "email_unavailable"
+  | "phone_only";
+
+type Locale = "en" | "ar";
+const asLocale = (l: string | undefined): Locale => (l === "ar" ? "ar" : "en");
+
+const VERIFY_COPY: Record<
+  Locale,
+  { subject: string; heading: string; body: string; button: string; foot: string }
+> = {
+  en: {
+    subject: "Verify your BuMayed account",
+    heading: "Confirm your email",
+    body: "Welcome to BuMayed! Tap the button to verify your email address and activate your account.",
+    button: "Verify my email",
+    foot: "This link expires in 24 hours. If the button does not work, copy this link into your browser:",
+  },
+  ar: {
+    subject: "فعّل حسابك في بوماید",
+    heading: "أكّد بريدك الإلكتروني",
+    body: "أهلاً بك في بوماید! اضغط على الزر لتأكيد بريدك الإلكتروني وتفعيل حسابك.",
+    button: "تأكيد بريدي",
+    foot: "ينتهي هذا الرابط خلال 24 ساعة. إذا لم يعمل الزر، انسخ الرابط التالي في المتصفح:",
+  },
+};
+
+/** Issues a fresh single-use link (replacing older ones) and emails it. */
+async function sendVerificationEmail(email: string, locale: Locale) {
+  const raw = await issueToken({
+    identifier: email,
+    purpose: "EMAIL_VERIFICATION",
+    ttlMs: 24 * 60 * 60 * 1000,
+  });
+  const link = `${appBaseUrl()}/${locale}/auth/verify-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(raw)}`;
+  const c = VERIFY_COPY[locale];
+  await sendEmail({
+    to: email,
+    subject: c.subject,
+    text: `${c.body}\n\n${link}\n\n${c.foot}`,
+    html: actionEmailHtml({
+      dir: locale === "ar" ? "rtl" : "ltr",
+      brand: locale === "ar" ? "بوماید" : "BuMayed",
+      heading: c.heading,
+      body: c.body,
+      buttonLabel: c.button,
+      link,
+      footnote: c.foot,
+    }),
+  });
+}
 
 function normalizeEmail(email: string | undefined | null): string | null {
   const v = email?.trim().toLowerCase();
@@ -33,7 +101,10 @@ const GENERIC_OK =
 export async function registerUser(
   input: RegisterInput,
   ip: string,
-): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
+): Promise<
+  | { ok: true; verification: VerificationMode }
+  | { ok: false; code: string; message: string }
+> {
   const rl = await consumeRateLimit({
     bucket: `register:ip:${ip}`,
     limit: 5,
@@ -53,22 +124,34 @@ export async function registerUser(
     };
   }
 
+  // With no email service connected, nobody can receive a link, so email
+  // accounts start active instead of being locked out. Verification turns
+  // into a real email step automatically once EMAIL_PROVIDER_API_KEY is set.
+  const canEmail = isEmailDeliveryConfigured();
+  const plannedMode: VerificationMode = !email
+    ? "phone_only"
+    : canEmail
+      ? "email_sent"
+      : "email_unavailable";
+
   if (email) {
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
       // Avoid account enumeration — same generic response as success path for duplicates
-      return { ok: true };
+      return { ok: true, verification: plannedMode };
     }
   }
   if (phone) {
     const exists = await prisma.user.findUnique({ where: { phone } });
-    if (exists) return { ok: true };
+    if (exists) return { ok: true, verification: plannedMode };
   }
 
   const passwordHash = await hashPassword(input.password);
   const role = input.accountType === "dealer" ? Role.DEALER : Role.INDIVIDUAL;
-  // Phone-only (OTP deferred): activate immediately. Email accounts need verification.
-  const status = email ? UserStatus.PENDING_VERIFICATION : UserStatus.ACTIVE;
+  // Phone-only (OTP deferred) activates immediately. Email accounts wait for
+  // their link, but only when a link can actually be delivered.
+  const status =
+    email && canEmail ? UserStatus.PENDING_VERIFICATION : UserStatus.ACTIVE;
 
   const businessName = input.businessName?.trim();
   const baseSlug = slugify(businessName || input.displayName);
@@ -103,22 +186,19 @@ export async function registerUser(
     },
   });
 
-  if (email) {
-    const raw = await issueToken({
-      identifier: email,
-      purpose: "EMAIL_VERIFICATION",
-      ttlMs: 24 * 60 * 60 * 1000,
-    });
-    const link = `${appBaseUrl()}/en/auth/verify-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(raw)}`;
-    await sendEmail({
-      to: email,
-      subject: "Verify your Bumayed account",
-      text: `Welcome to Bumayed.\n\nVerify your email:\n${link}\n\nThis link expires in 24 hours.`,
-    });
+  let verification: VerificationMode = plannedMode;
+  if (email && canEmail) {
+    try {
+      await sendVerificationEmail(email, asLocale(input.locale));
+    } catch (err) {
+      // The account exists; let them ask for another link instead of failing.
+      console.error("verification email failed", err);
+      verification = "email_failed";
+    }
   }
 
   void user;
-  return { ok: true };
+  return { ok: true, verification };
 }
 
 /** Look up by email or phone. Never reveal which field matched to the client. */
@@ -184,7 +264,16 @@ export async function authenticateCredentials(input: {
     user.status === UserStatus.PENDING_VERIFICATION &&
     !user.emailVerifiedAt
   ) {
-    return { ok: false, code: "EMAIL_NOT_VERIFIED" };
+    if (isEmailDeliveryConfigured()) {
+      return { ok: false, code: "EMAIL_NOT_VERIFIED" };
+    }
+    // No way to deliver a link yet: let them in rather than lock them out.
+    // emailVerifiedAt stays empty, so the email is still confirmed later.
+    user.status = UserStatus.ACTIVE;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { status: UserStatus.ACTIVE },
+    });
   }
 
   await prisma.user.update({
@@ -230,7 +319,7 @@ export async function requestPasswordReset(
     const link = `${appBaseUrl()}/en/auth/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(raw)}`;
     await sendEmail({
       to: email,
-      subject: "Reset your Bumayed password",
+      subject: "Reset your BuMayed password",
       text: `Reset your password:\n${link}\n\nThis link expires in 1 hour. If you did not request this, ignore this email.`,
     });
   }
@@ -317,13 +406,67 @@ export async function verifyEmail(input: {
     };
   }
 
+  // Confirm the email for everyone with it, but only finish activation for
+  // accounts that were waiting: a link must never lift a suspension or block.
   await prisma.user.updateMany({
     where: { email },
-    data: {
-      emailVerifiedAt: new Date(),
-      status: UserStatus.ACTIVE,
-    },
+    data: { emailVerifiedAt: new Date() },
+  });
+  await prisma.user.updateMany({
+    where: { email, status: UserStatus.PENDING_VERIFICATION },
+    data: { status: UserStatus.ACTIVE },
   });
 
+  return { ok: true };
+}
+
+/**
+ * "Send me a new link". Takes an email or mobile number and always answers
+ * the same way for unknown accounts, so it cannot be used to find out who
+ * has registered. Limited per address and per visitor.
+ */
+export async function resendVerification(input: {
+  identifier: string;
+  locale?: string;
+  ip: string;
+}): Promise<
+  | { ok: true }
+  | { ok: false; code: "RATE_LIMITED" | "EMAIL_UNAVAILABLE" }
+> {
+  const ipLimit = await consumeRateLimit({
+    bucket: `resend:ip:${input.ip}`,
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!ipLimit.ok) return { ok: false, code: "RATE_LIMITED" };
+  if (!isEmailDeliveryConfigured()) {
+    return { ok: false, code: "EMAIL_UNAVAILABLE" };
+  }
+
+  const identifier = input.identifier.trim();
+  const email = identifier.includes("@") ? normalizeEmail(identifier) : null;
+  const phone = !email ? normalizePhone(identifier) : null;
+  if (!email && !phone) return { ok: true };
+
+  const user = await prisma.user.findFirst({
+    where: email ? { email } : { phone: phone! },
+    select: { email: true, status: true, emailVerifiedAt: true },
+  });
+  const blocked =
+    user?.status === UserStatus.SUSPENDED || user?.status === UserStatus.BLOCKED;
+  if (!user?.email || user.emailVerifiedAt || blocked) return { ok: true };
+
+  const perAddress = await consumeRateLimit({
+    bucket: `resend:email:${user.email}`,
+    limit: 3,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!perAddress.ok) return { ok: false, code: "RATE_LIMITED" };
+
+  try {
+    await sendVerificationEmail(user.email, asLocale(input.locale));
+  } catch (err) {
+    console.error("resend verification email failed", err);
+  }
   return { ok: true };
 }

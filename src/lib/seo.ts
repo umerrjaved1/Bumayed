@@ -35,7 +35,7 @@ export function publicMetadata(input: {
       title: input.title,
       description: input.description,
       url: canonical,
-      siteName: "Bumayed",
+      siteName: "BuMayed",
       locale: input.locale === "ar" ? "ar_AE" : "en_AE",
       type: "website",
       images: input.image ? [{ url: input.image }] : undefined,

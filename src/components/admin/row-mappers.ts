@@ -33,6 +33,9 @@ export type AdminListingRow = {
   slug: string;
   status: string;
   priceAed: number;
+  /** Price as the seller typed it, in the ad's own currency. */
+  price: number;
+  currency: string;
   submittedAt: string | null;
   rejectionReason: string | null;
   sellerName: string;
@@ -62,6 +65,8 @@ export function mapListingRow(row: Record<string, unknown>): AdminListingRow {
     slug: String(row.slug),
     status: String(row.status),
     priceAed: Number(row.priceAed),
+    price: Number(row.price ?? row.priceAed),
+    currency: String(row.currency ?? "AED"),
     submittedAt: row.submittedAt
       ? new Date(String(row.submittedAt)).toISOString()
       : null,

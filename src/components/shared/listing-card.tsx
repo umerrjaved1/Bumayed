@@ -9,6 +9,7 @@ import {
   Car,
   CircleGauge,
   Gauge,
+  Hash,
   Heart,
   MapPin,
   Ship,
@@ -17,29 +18,45 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { PriceDisplay } from "@/components/shared/price-display";
+import { PlateBadge } from "@/components/shared/plate-badge";
 import { useFavorites } from "@/components/shared/favorites-provider";
 import { cn } from "@/lib/utils";
 import type { ListingPublicDto } from "@/modules/listings/types";
 
-const CATEGORY_ICONS = { cars: Car, motorcycles: CircleGauge, boats: Ship };
+const CATEGORY_ICONS = {
+  cars: Car,
+  motorcycles: CircleGauge,
+  boats: Ship,
+  plates: Hash,
+};
 
 /** The fields a card needs (also what "Recently viewed" keeps on the device). */
-export type ListingCardData = Pick<
-  ListingPublicDto,
-  | "id"
-  | "slug"
-  | "category"
-  | "title"
-  | "priceAed"
-  | "negotiable"
-  | "year"
-  | "mileageKm"
-  | "emirate"
-  | "photos"
-  | "photoCount"
-  | "featured"
-  | "urgent"
->;
+export type ListingCardData = Partial<
+  Pick<
+    ListingPublicDto,
+    "price" | "currency" | "country" | "regionEn" | "regionAr"
+  >
+> &
+  Pick<
+    ListingPublicDto,
+    | "id"
+    | "slug"
+    | "category"
+    | "title"
+    | "priceAed"
+    | "negotiable"
+    | "year"
+    | "mileageKm"
+    | "emirate"
+    | "photos"
+    | "photoCount"
+    | "featured"
+    | "urgent"
+    | "plateEmirate"
+    | "plateCode"
+    | "plateNumber"
+    | "plateType"
+  >;
 
 /** Heart on the card photo: save without opening the ad. */
 function SaveHeart({ listingId, title }: { listingId: string; title: string }) {
@@ -82,7 +99,27 @@ export function ListingCard({
 }) {
   const t = useTranslations("listing");
   const te = useTranslations("emirates");
+  const tp = useTranslations("plates");
   const locale = useLocale();
+  // Region names come with the ad; entries saved on this device before
+  // countries existed fall back to the UAE emirate names.
+  const regionLabel = listing.regionEn
+    ? locale === "ar"
+      ? listing.regionAr
+      : listing.regionEn
+    : te(listing.emirate as Parameters<typeof te>[0]);
+  const plate =
+    listing.category === "plates" &&
+    listing.plateEmirate &&
+    listing.plateCode &&
+    listing.plateNumber
+      ? {
+          emirate: listing.plateEmirate,
+          code: listing.plateCode,
+          number: listing.plateNumber,
+          type: listing.plateType ?? "private",
+        }
+      : null;
   const Icon = CATEGORY_ICONS[listing.category];
 
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar-AE" : "en-AE");
@@ -97,7 +134,19 @@ export function ListingCard({
         <article className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/[0.07] transition-all duration-500 ease-[var(--ease-out-expo)] group-hover/card:-translate-y-1.5 group-hover/card:shadow-[0_24px_48px_-20px_oklch(0.2_0.05_258/0.35)] group-hover/card:ring-accent/40 group-active/card:scale-[0.985]">
           {/* Photo */}
           <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary/85 to-ink sm:aspect-[4/3]">
-            {listing.photos[0] ? (
+            {plate ? (
+              <div className="grid h-full place-items-center">
+                <PlateBadge
+                  {...plate}
+                  label={tp("label", {
+                    emirate: te(plate.emirate),
+                    code: plate.code,
+                    number: plate.number,
+                  })}
+                  className="transition-transform duration-500 group-hover/card:scale-105"
+                />
+              </div>
+            ) : listing.photos[0] ? (
               <Image
                 src={listing.photos[0]}
                 alt={listing.title}
@@ -137,7 +186,7 @@ export function ListingCard({
             </div>
 
             {/* Photo count + hover arrow */}
-            {photoCount > 0 && (
+            {photoCount > 0 && !plate && (
               <span
                 className="absolute start-3 bottom-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-medium text-white glass-dark"
                 aria-label={t("photos", { count: photoCount })}
@@ -161,7 +210,9 @@ export function ListingCard({
             </h3>
             <div className="mt-1 flex items-baseline gap-2">
               <PriceDisplay
-                amountAed={listing.priceAed}
+                // Older "Recently viewed" entries saved before countries existed are in dirhams.
+                amount={listing.price ?? listing.priceAed}
+                currency={listing.currency ?? "AED"}
                 className="font-heading text-xl font-bold"
               />
               {listing.negotiable && (
@@ -172,10 +223,17 @@ export function ListingCard({
             </div>
 
             <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-4 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 tabular-nums">
-                <Calendar className="size-3" aria-hidden />
-                {listing.year}
-              </span>
+              {plate ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1">
+                  <Hash className="size-3" aria-hidden />
+                  {tp(`type.${plate.type}`)}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 tabular-nums">
+                  <Calendar className="size-3" aria-hidden />
+                  {listing.year}
+                </span>
+              )}
               {listing.mileageKm != null && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 tabular-nums">
                   <Gauge className="size-3" aria-hidden />
@@ -184,7 +242,7 @@ export function ListingCard({
               )}
               <span className="ms-auto inline-flex items-center gap-1">
                 <MapPin className="size-3.5 text-accent" aria-hidden />
-                {te(listing.emirate)}
+                {regionLabel}
               </span>
             </div>
           </div>

@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import { Noto_Sans_Arabic, Plus_Jakarta_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import { routing } from "@/i18n/routing";
+import { CLIENT_NAMESPACES } from "@/i18n/client-namespaces";
 import { siteUrl } from "@/lib/seo";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -30,33 +35,6 @@ const notoSansArabic = Noto_Sans_Arabic({
   display: "swap",
   preload: false,
 });
-
-/**
- * Translation namespaces that client components read. Server-only copy
- * (homepage, content pages, SEO, footer…) stays on the server instead of
- * being shipped to the browser on every page.
- */
-const CLIENT_NAMESPACES = [
-  "common",
-  "nav",
-  "listing",
-  "emirates",
-  "filters",
-  "sort",
-  "detail",
-  "favorites",
-  "errors",
-  "auth",
-  "tabBar",
-  "dashboard",
-  "wizard",
-  "sellerListings",
-  "dealerDashboard",
-  "admin",
-  "checkout",
-  "packages",
-  "promote",
-] as const;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -119,21 +97,23 @@ export default async function LocaleLayout({
       <body className="flex min-h-screen flex-col antialiased">
         <NextIntlClientProvider messages={clientMessages}>
           <TooltipProvider>
-          <FavoritesProvider signedIn={!!session?.user}>
-            <NavigationProgress />
-            <NavHistoryTracker />
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-foreground"
-        >
-          {locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}
-        </a>
-        <SiteHeader />
-            <main id="main" className="flex-1">{children}</main>
-            <SiteFooter />
-            <SiteTabBar />
-            <Toaster richColors position="top-center" />
-          </FavoritesProvider>
+            <FavoritesProvider signedIn={!!session?.user}>
+              <NavigationProgress />
+              <NavHistoryTracker />
+              <a
+                href="#main"
+                className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-foreground"
+              >
+                {locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}
+              </a>
+              <SiteHeader />
+              <main id="main" className="flex-1">
+                {children}
+              </main>
+              <SiteFooter />
+              <SiteTabBar />
+              <Toaster richColors position="top-center" />
+            </FavoritesProvider>
           </TooltipProvider>
         </NextIntlClientProvider>
       </body>

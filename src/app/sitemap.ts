@@ -9,6 +9,7 @@ const STATIC_PATHS = [
   "/cars",
   "/motorcycles",
   "/boats",
+  "/plates",
   "/about",
   "/faq",
   "/terms",
@@ -19,7 +20,8 @@ const STATIC_PATHS = [
 /** Active listings only. Drafts, pending, and private areas stay out. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const listings = await prisma.listing.findMany({
-    where: { status: "ACTIVE" },
+    // Only countries that are switched on: nothing is advertised before launch.
+    where: { status: "ACTIVE", emirate: { country: { isActive: true } } },
     select: { slug: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
     take: 5000,

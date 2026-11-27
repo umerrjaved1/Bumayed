@@ -6,6 +6,9 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { GCC_COUNTRIES } from "../src/lib/gcc";
+import { GCC_REGIONS } from "../src/lib/gcc-locations";
+import { toAedEquivalent } from "../src/lib/currency";
 import {
   ContentStatus,
   DealerVerificationStatus,
@@ -18,6 +21,32 @@ import {
   VehicleCategory,
   VideoProvider,
 } from "../src/generated/prisma/client";
+
+/**
+ * Safety: this seed creates dev accounts with known passwords and dozens of
+ * dummy ads. Running it on a live database puts all of that back, so it only
+ * runs against a local database unless you explicitly allow otherwise.
+ * (To add just the Gulf regions to a live database, use
+ * scripts/seed-gcc-locations.ts instead.)
+ */
+function assertSafeTarget() {
+  const url = process.env.DATABASE_URL ?? "";
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    /* handled below */
+  }
+  const local = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host);
+  if (!local && process.env.ALLOW_SEED_ON_REMOTE !== "1") {
+    throw new Error(
+      `Refusing to seed a remote database (${host || "unknown host"}). ` +
+        "This seed creates dev accounts and dummy ads. " +
+        "If you really mean it, set ALLOW_SEED_ON_REMOTE=1.",
+    );
+  }
+}
+assertSafeTarget();
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -50,20 +79,62 @@ const CITIES: Record<string, { nameEn: string; nameAr: string }[]> = {
 };
 
 async function seedLocations() {
+  // Countries are reference data for all six. Only the UAE is switched on by
+  // default; the others are turned on in the database when ready to launch.
+  const countryIds: Record<string, string> = {};
+  for (const c of GCC_COUNTRIES) {
+    const row = await prisma.country.upsert({
+      where: { code: c.code },
+      update: { dialCode: c.dial, currency: c.currency },
+      create: {
+        code: c.code,
+        nameEn: c.nameEn,
+        nameAr: c.nameAr,
+        dialCode: c.dial,
+        currency: c.currency,
+        isActive: c.code === "AE",
+      },
+    });
+    countryIds[c.code] = row.id;
+  }
+
+  const upsertCities = async (
+    emirateId: string,
+    cities: { nameEn: string; nameAr: string }[],
+  ) => {
+    for (const city of cities) {
+      await prisma.city.upsert({
+        where: { emirateId_nameEn: { emirateId, nameEn: city.nameEn } },
+        update: { nameAr: city.nameAr },
+        create: { emirateId, ...city },
+      });
+    }
+  };
+
+  // UAE emirates
   for (const e of EMIRATES) {
     const emirate = await prisma.emirate.upsert({
       where: { code: e.code },
-      update: { nameEn: e.nameEn, nameAr: e.nameAr },
-      create: e,
+      update: { nameEn: e.nameEn, nameAr: e.nameAr, countryId: countryIds.AE! },
+      create: { ...e, countryId: countryIds.AE! },
     });
-    for (const city of CITIES[e.code] ?? []) {
-      await prisma.city.upsert({
-        where: {
-          emirateId_nameEn: { emirateId: emirate.id, nameEn: city.nameEn },
+    await upsertCities(emirate.id, CITIES[e.code] ?? []);
+  }
+
+  // The other five countries' regions and main cities
+  for (const [countryCode, regions] of Object.entries(GCC_REGIONS)) {
+    for (const r of regions) {
+      const region = await prisma.emirate.upsert({
+        where: { code: r.code },
+        update: { nameEn: r.nameEn, nameAr: r.nameAr, countryId: countryIds[countryCode]! },
+        create: {
+          code: r.code,
+          nameEn: r.nameEn,
+          nameAr: r.nameAr,
+          countryId: countryIds[countryCode]!,
         },
-        update: { nameAr: city.nameAr },
-        create: { emirateId: emirate.id, ...city },
       });
+      await upsertCities(region.id, r.cities);
     }
   }
 }
@@ -102,6 +173,65 @@ async function seedCatalog() {
       sortOrder: 3,
     },
   });
+  const plates = await prisma.category.upsert({
+    where: { code: VehicleCategory.PLATES },
+    update: {},
+    create: {
+      code: VehicleCategory.PLATES,
+      nameEn: "Number plates",
+      nameAr: "لوحات أرقام",
+      slug: "plates",
+      sortOrder: 4,
+    },
+  });
+
+  // Plates have no makes/models; their identity lives in these specs.
+  for (const f of [
+    {
+      key: "plateEmirate",
+      labelEn: "Issuing emirate",
+      labelAr: "الإمارة المصدرة",
+      fieldType: FieldType.SELECT,
+      optionsJson: ["AUH", "DXB", "SHJ", "AJM", "UAQ", "RAK", "FUJ"],
+      isFilterable: true,
+      isRequired: true,
+      sortOrder: 1,
+    },
+    {
+      key: "plateCode",
+      labelEn: "Plate code",
+      labelAr: "رمز اللوحة",
+      fieldType: FieldType.TEXT,
+      isFilterable: true,
+      isRequired: true,
+      sortOrder: 2,
+    },
+    {
+      key: "plateNumber",
+      labelEn: "Plate number",
+      labelAr: "رقم اللوحة",
+      fieldType: FieldType.TEXT,
+      isFilterable: true,
+      isRequired: true,
+      sortOrder: 3,
+    },
+    {
+      key: "plateType",
+      labelEn: "Plate type",
+      labelAr: "نوع اللوحة",
+      fieldType: FieldType.SELECT,
+      optionsJson: ["private", "motorcycle", "classic"],
+      isFilterable: true,
+      isRequired: true,
+      sortOrder: 4,
+    },
+  ]) {
+    await prisma.categoryField.upsert({
+      where: { categoryId_key: { categoryId: plates.id, key: f.key } },
+      update: f,
+      create: { categoryId: plates.id, ...f },
+    });
+  }
 
   const carFields = [
     {
@@ -355,6 +485,7 @@ async function seedCatalog() {
     cars,
     motorcycles,
     boats,
+    plates,
     nissan,
     toyota,
     mercedes,
@@ -784,6 +915,7 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
         title: s.title,
         description: s.description,
         priceAed: s.priceAed,
+        price: s.priceAed,
         negotiable: s.negotiable ?? false,
         year: s.year,
         mileageKm: s.mileageKm,
@@ -803,6 +935,7 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
         slug: s.slug,
         description: s.description,
         priceAed: s.priceAed,
+        price: s.priceAed,
         negotiable: s.negotiable ?? false,
         makeId: s.makeId,
         modelId: s.modelId,
@@ -884,6 +1017,7 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
         description:
           "DEV SAMPLE pending listing for moderation queue testing.",
         priceAed: 65000,
+        price: 65000,
         makeId: catalog.toyota.id,
         modelId: camry?.id,
         year: 2021,
@@ -911,7 +1045,8 @@ async function seedUsersAndListings(catalog: Awaited<ReturnType<typeof seedCatal
   console.log("  seller.dev@bumayed.local    (role: INDIVIDUAL) — DEV ONLY");
 }
 
-const BULK_COUNTS: Record<VehicleCategory, number> = {
+// Plates have no make/model pool, so they are seeded by seedPlateListings().
+const BULK_COUNTS: Record<Exclude<VehicleCategory, "PLATES">, number> = {
   CARS: 45,
   MOTORCYCLES: 18,
   BOATS: 15,
@@ -931,7 +1066,10 @@ async function seedBulkListings() {
   const individual = await prisma.user.findUniqueOrThrow({
     where: { email: "seller.dev@bumayed.local" },
   });
-  const cities = await prisma.city.findMany({ include: { emirate: true } });
+  const cities = await prisma.city.findMany({
+    where: { emirate: { country: { code: "AE" } } },
+    include: { emirate: true },
+  });
   const models = await prisma.vehicleModel.findMany({
     where: { make: { isActive: true } },
     include: {
@@ -943,6 +1081,7 @@ async function seedBulkListings() {
 
   let created = 0;
   for (const category of Object.values(VehicleCategory)) {
+    if (category === VehicleCategory.PLATES) continue;
     const pool = models.filter((m) => m.make.category.code === category);
     if (pool.length === 0) continue;
     const count = BULK_COUNTS[category];
@@ -1000,6 +1139,7 @@ async function seedBulkListings() {
         update: {
           title,
           priceAed,
+          price: priceAed,
           year,
           status,
           specs,
@@ -1018,6 +1158,7 @@ async function seedBulkListings() {
           slug,
           description: `DEV SAMPLE. ${title} listed in ${city.emirate.nameEn}. Full service history available on request.`,
           priceAed,
+          price: priceAed,
           negotiable: i % 3 === 0,
           makeId: model.makeId,
           modelId: model.id,
@@ -1084,6 +1225,176 @@ async function seedBulkListings() {
   console.log(`Seeded ${created} bulk dummy listings.`);
 }
 
+const PLATE_SAMPLES: {
+  emirate: "AUH" | "DXB" | "SHJ" | "AJM" | "UAQ" | "RAK" | "FUJ";
+  code: string;
+  number: string;
+  type: "private" | "motorcycle" | "classic";
+  priceAed: number;
+  negotiable?: boolean;
+}[] = [
+  { emirate: "AUH", code: "1", number: "7", type: "private", priceAed: 5_200_000 },
+  { emirate: "DXB", code: "A", number: "9", type: "private", priceAed: 3_100_000, negotiable: true },
+  { emirate: "DXB", code: "B", number: "88", type: "private", priceAed: 410_000 },
+  { emirate: "AUH", code: "12", number: "555", type: "private", priceAed: 145_000, negotiable: true },
+  { emirate: "SHJ", code: "3", number: "1000", type: "private", priceAed: 78_000 },
+  { emirate: "DXB", code: "Z", number: "7777", type: "private", priceAed: 52_000, negotiable: true },
+  { emirate: "AJM", code: "A", number: "22", type: "private", priceAed: 96_000 },
+  { emirate: "RAK", code: "D", number: "123", type: "private", priceAed: 18_500 },
+  { emirate: "UAQ", code: "X", number: "5", type: "private", priceAed: 240_000, negotiable: true },
+  { emirate: "FUJ", code: "K", number: "99", type: "private", priceAed: 31_000 },
+  { emirate: "DXB", code: "M", number: "77", type: "motorcycle", priceAed: 14_000 },
+  { emirate: "AUH", code: "7", number: "4321", type: "classic", priceAed: 9_800 },
+];
+
+/** Sample number-plate ads (no photos: the site draws the plate itself). */
+async function seedPlateListings(catalog: Awaited<ReturnType<typeof seedCatalog>>) {
+  const dealer = await prisma.user.findUniqueOrThrow({
+    where: { email: "dealer.dev@bumayed.local" },
+  });
+  const individual = await prisma.user.findUniqueOrThrow({
+    where: { email: "seller.dev@bumayed.local" },
+  });
+  const cities = await prisma.city.findMany({
+    where: { emirate: { country: { code: "AE" } } },
+    include: { emirate: true },
+  });
+  const names: Record<string, string> = {
+    AUH: "Abu Dhabi",
+    DXB: "Dubai",
+    SHJ: "Sharjah",
+    AJM: "Ajman",
+    UAQ: "Umm Al Quwain",
+    RAK: "Ras Al Khaimah",
+    FUJ: "Fujairah",
+  };
+
+  for (const [i, p] of PLATE_SAMPLES.entries()) {
+    const city = cities.find((c) => c.emirate.code === p.emirate);
+    if (!city) continue;
+    const seller = i % 3 === 0 ? individual : dealer;
+    const slug = `plate-${p.emirate.toLowerCase()}-${p.code.toLowerCase()}-${p.number}`;
+    const title = `${names[p.emirate]} plate ${p.code} ${p.number}`;
+    const specs: Prisma.InputJsonValue = {
+      plateEmirate: p.emirate,
+      plateCode: p.code,
+      plateNumber: p.number,
+      plateType: p.type,
+      plateDigits: p.number.length,
+    };
+    const listing = await prisma.listing.upsert({
+      where: { slug },
+      update: { title, priceAed: p.priceAed, price: p.priceAed, specs, status: ListingStatus.ACTIVE },
+      create: {
+        sellerId: seller.id,
+        categoryId: catalog.plates.id,
+        status: ListingStatus.ACTIVE,
+        title,
+        slug,
+        description: `DEV SAMPLE. ${names[p.emirate]} ${p.type} number plate ${p.code} ${p.number}. Transfer handled through the licensing authority; ownership papers ready.`,
+        priceAed: p.priceAed,
+        price: p.priceAed,
+        negotiable: p.negotiable ?? false,
+        year: null,
+        mileageKm: null,
+        emirateId: city.emirateId,
+        cityId: city.id,
+        specs,
+        viewsCount: 20 + i * 11,
+        contactPhone: seller.id === dealer.id ? "+971501112233" : "+971509998877",
+        contactWhatsapp:
+          seller.id === dealer.id ? "+971501112233" : "+971509998877",
+        submittedAt: new Date(Date.now() - i * 5_400_000),
+        approvedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(Date.now() - i * 5_400_000),
+      },
+    });
+    if (i % 4 === 1) {
+      const existing = await prisma.featuredPromotion.findFirst({
+        where: { listingId: listing.id, type: PromotionType.FEATURED, status: "ACTIVE" },
+      });
+      if (!existing) {
+        await prisma.featuredPromotion.create({
+          data: {
+            listingId: listing.id,
+            type: PromotionType.FEATURED,
+            endsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+    }
+  }
+  console.log(`Seeded ${PLATE_SAMPLES.length} number-plate listings.`);
+}
+
+/** A few DEV SAMPLE ads in the other five countries, priced in local currency. */
+async function seedGccListings(catalog: Awaited<ReturnType<typeof seedCatalog>>) {
+  const dealer = await prisma.user.findUniqueOrThrow({
+    where: { email: "dealer.dev@bumayed.local" },
+  });
+  const samples = [
+    { country: "SA", region: "RUH", city: "Riyadh", make: catalog.toyota, title: "Toyota Land Cruiser GXR 2022", price: 215000, phone: "+966501112233", year: 2022, km: 41000 },
+    { country: "SA", region: "MKK", city: "Jeddah", make: catalog.nissan, title: "Nissan Patrol Platinum 2023", price: 285000, phone: "+966501112244", year: 2023, km: 18000 },
+    { country: "QA", region: "DOH", city: "Doha", make: catalog.toyota, title: "Toyota Land Cruiser VXR 2021", price: 235000, phone: "+97455112233", year: 2021, km: 56000 },
+    { country: "KW", region: "HAW", city: "Salmiya", make: catalog.nissan, title: "Nissan Patrol Titanium 2022", price: 14500, phone: "+96550112233", year: 2022, km: 33000 },
+    { country: "BH", region: "BHC", city: "Manama", make: catalog.toyota, title: "Toyota Camry 2023", price: 5800, phone: "+97336112233", year: 2023, km: 12000 },
+    { country: "OM", region: "MCT", city: "Muscat", make: catalog.nissan, title: "Nissan Patrol 2021", price: 9800, phone: "+96892112233", year: 2021, km: 61000 },
+  ];
+
+  for (const x of samples) {
+    const country = GCC_COUNTRIES.find((c) => c.code === x.country)!;
+    const slug = `sample-${x.country.toLowerCase()}-${x.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    const region = await prisma.emirate.findUniqueOrThrow({ where: { code: x.region } });
+    const city = await prisma.city.findFirstOrThrow({
+      where: { emirateId: region.id, nameEn: x.city },
+    });
+    const model = await prisma.vehicleModel.findFirst({ where: { makeId: x.make.id } });
+    const priceAed = toAedEquivalent(x.price, country.currency);
+    await prisma.listing.upsert({
+      where: { slug },
+      update: { price: x.price, currency: country.currency, priceAed, countryCode: x.country },
+      create: {
+        sellerId: dealer.id,
+        categoryId: catalog.cars.id,
+        status: ListingStatus.ACTIVE,
+        title: x.title,
+        slug,
+        description: `DEV SAMPLE. ${x.title} in ${x.city}. Priced in ${country.currency}.`,
+        price: x.price,
+        currency: country.currency,
+        priceAed,
+        countryCode: x.country,
+        makeId: x.make.id,
+        modelId: model?.id,
+        year: x.year,
+        mileageKm: x.km,
+        emirateId: region.id,
+        cityId: city.id,
+        specs: {
+          regionalSpec: "GCC",
+          bodyType: "SUV",
+          transmission: "AUTOMATIC",
+          fuelType: "PETROL",
+          colour: "White",
+          condition: "USED",
+          warranty: false,
+        },
+        approvedAt: new Date(),
+        submittedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        contactPhone: x.phone,
+        contactWhatsapp: x.phone,
+        images: {
+          create: [{ objectKey: `seed/${slug}/1.jpg`, sortOrder: 0, isPrimary: true, mime: "image/jpeg" }],
+        },
+      },
+    });
+  }
+  console.log(`Seeded ${samples.length} sample ads in the other GCC countries.`);
+}
+
+
 async function main() {
   console.log("Seeding Bumayed…");
   await seedLocations();
@@ -1092,6 +1403,8 @@ async function main() {
   await seedContentDraft();
   await seedUsersAndListings(catalog);
   await seedBulkListings();
+  await seedPlateListings(catalog);
+  await seedGccListings(catalog);
   console.log("Seed complete.");
 }
 

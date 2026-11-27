@@ -15,9 +15,10 @@ import type {
   City,
 } from "@/generated/prisma/client";
 import { publicUrlForKey } from "@/lib/storage/local";
+import type { CurrencyCode, GccCode } from "@/lib/gcc";
+import { readPlateSpecs } from "./plates";
 import {
   CATEGORY_ENUM_TO_CODE,
-  type EmirateCode,
   type ListingPublicDto,
   type VehicleCategoryCode,
 } from "./types";
@@ -55,6 +56,23 @@ function activePromo(
   );
 }
 
+function plateFields(
+  specs: Record<string, unknown>,
+): Pick<
+  ListingPublicDto,
+  "plateEmirate" | "plateCode" | "plateNumber" | "plateType"
+> {
+  const plate = readPlateSpecs(specs);
+  return plate
+    ? {
+        plateEmirate: plate.emirate,
+        plateCode: plate.code,
+        plateNumber: plate.number,
+        plateType: plate.type,
+      }
+    : {};
+}
+
 export function toPublicDto(row: ListingRow): ListingPublicDto {
   const specs = (row.specs ?? {}) as Record<string, unknown>;
   const category = CATEGORY_ENUM_TO_CODE[
@@ -80,14 +98,19 @@ export function toPublicDto(row: ListingRow): ListingPublicDto {
     slug: row.slug,
     category,
     title: row.title,
+    price: row.price,
+    currency: row.currency as CurrencyCode,
     priceAed: row.priceAed,
+    country: row.countryCode as GccCode,
     negotiable: row.negotiable,
     year: row.year ?? 0,
     mileageKm: row.mileageKm,
     make: row.make?.nameEn ?? "",
     model: row.model?.nameEn ?? "",
     trim: row.trim?.nameEn,
-    emirate: row.emirate.code as EmirateCode,
+    emirate: row.emirate.code,
+    regionEn: row.emirate.nameEn,
+    regionAr: row.emirate.nameAr,
     city: row.city.nameEn,
     cityAr: row.city.nameAr,
     condition: (lower(specs.condition) as "new" | "used") ?? "used",
@@ -117,6 +140,7 @@ export function toPublicDto(row: ListingRow): ListingPublicDto {
       typeof specs.engineHours === "number" ? specs.engineHours : undefined,
     engineType:
       typeof specs.engineType === "string" ? specs.engineType : undefined,
+    ...plateFields(specs),
     seller: {
       name: row.seller.profile?.displayName ?? "Seller",
       type: isDealer ? "dealer" : "individual",

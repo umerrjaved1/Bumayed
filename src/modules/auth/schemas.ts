@@ -1,8 +1,5 @@
 import { z } from "zod";
-
-const phoneE164 = z
-  .string()
-  .regex(/^\+[1-9]\d{7,14}$/, "Phone must be E.164 (e.g. +971501234567)");
+import { isValidPhone } from "./phone";
 
 export const registerSchema = z
   .object({
@@ -12,6 +9,8 @@ export const registerSchema = z
     phone: z.string().optional().or(z.literal("")),
     password: z.string().min(8).max(128),
     businessName: z.string().trim().min(2).max(120).optional(),
+    /** Language of the page they signed up on; used for the email text. */
+    locale: z.enum(["en", "ar"]).optional(),
   })
   .superRefine((data, ctx) => {
     const email = data.email?.trim() ?? "";
@@ -34,8 +33,7 @@ export const registerSchema = z
       }
     }
     if (phone) {
-      const parsed = phoneE164.safeParse(phone);
-      if (!parsed.success) {
+      if (!isValidPhone(phone)) {
         ctx.addIssue({
           code: "custom",
           message: "Phone must be E.164 (e.g. +971501234567)",
@@ -70,4 +68,9 @@ export const resetPasswordSchema = z.object({
 export const verifyEmailSchema = z.object({
   email: z.email(),
   token: z.string().min(20),
+});
+
+export const resendVerificationSchema = z.object({
+  identifier: z.string().trim().min(3).max(120),
+  locale: z.enum(["en", "ar"]).optional(),
 });

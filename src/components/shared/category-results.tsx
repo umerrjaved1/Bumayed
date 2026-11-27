@@ -1,5 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { buildQueryString, parseListingQuery } from "@/modules/listings/query";
+import { selectedCountry } from "@/lib/country";
+import { getRegionsWithCities } from "@/modules/locations/service";
 import {
   getKeywordMatchesElsewhere,
   searchPublicListings,
@@ -17,7 +19,7 @@ import { PaginationControls } from "@/components/shared/pagination-controls";
 import { ListingCard } from "@/components/shared/listing-card";
 import { EmptyState } from "@/components/shared/empty-state";
 
-const CATEGORIES = ["cars", "motorcycles", "boats"] as const;
+const CATEGORIES = ["cars", "motorcycles", "boats", "plates"] as const;
 
 function flatten(sp: SearchParamsInput): Record<string, string> {
   const out: Record<string, string> = {};
@@ -40,11 +42,18 @@ export async function CategoryResults({
   const tn = await getTranslations("nav");
   const terr = await getTranslations("errors");
 
-  const query = parseListingQuery(searchParams, category);
-  const [{ items, total, page, totalPages }, makes] = await Promise.all([
-    searchPublicListings(query),
-    getCachedMakesForCategory(category),
-  ]);
+  const query = parseListingQuery(
+    searchParams,
+    category,
+    await selectedCountry(),
+  );
+  const [{ items, total, page, totalPages }, makes, regions] =
+    await Promise.all([
+      searchPublicListings(query),
+      getCachedMakesForCategory(category),
+      // Regions of the browsed country; none when browsing the whole GCC.
+      query.country ? getRegionsWithCities(query.country) : Promise.resolve([]),
+    ]);
   // Nothing here for this keyword: point to the categories where it does match.
   const elsewhere =
     items.length === 0 && query.keyword
@@ -63,13 +72,16 @@ export async function CategoryResults({
   return (
     <div>
       <header className="relative isolate overflow-hidden border-b bg-ink text-ink-foreground">
-        <div className="bg-grid mask-fade-b absolute inset-0 -z-10 opacity-50" />
+        <div className="absolute inset-0 -z-10 bg-grid mask-fade-b opacity-50" />
         <div
           aria-hidden
-          className="animate-float absolute -top-24 end-0 -z-10 size-96 rounded-full bg-accent/20 blur-[110px]"
+          className="absolute end-0 -top-24 -z-10 size-96 animate-float rounded-full bg-accent/20 blur-[110px]"
         />
         <div className="mx-auto max-w-7xl px-4 pt-7 pb-6 sm:px-6 sm:py-14 lg:px-8">
-          <nav aria-label="Breadcrumb" className="animate-fade-in text-xs text-white/50">
+          <nav
+            aria-label="Breadcrumb"
+            className="animate-fade-in text-xs text-white/50"
+          >
             <Link href="/" className="transition-colors hover:text-accent">
               {tn("home")}
             </Link>
@@ -78,17 +90,17 @@ export async function CategoryResults({
             </span>
             <span className="text-white/80">{tc(category)}</span>
           </nav>
-          <h1 className="animate-fade-up mt-2 font-heading text-[2rem] leading-tight font-extrabold tracking-tight sm:mt-3 sm:text-5xl">
+          <h1 className="mt-2 animate-fade-up font-heading text-[2rem] leading-tight font-extrabold tracking-tight sm:mt-3 sm:text-5xl">
             {tc(category)}
           </h1>
           <p
-            className="animate-fade-up mt-2 max-w-2xl text-sm text-white/65 sm:mt-3 sm:text-base"
+            className="mt-2 max-w-2xl animate-fade-up text-sm text-white/65 sm:mt-3 sm:text-base"
             style={{ animationDelay: "80ms" }}
           >
             {tc(`${category}Description`)}
           </p>
           <div
-            className="animate-fade-up scrollbar-none -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+            className="-mx-4 mt-5 scrollbar-none flex animate-fade-up gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0"
             style={{ animationDelay: "160ms" }}
           >
             {CATEGORIES.map((c) => (
@@ -117,11 +129,14 @@ export async function CategoryResults({
       <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-16 sm:px-6 lg:mt-8 lg:grid-cols-[288px_1fr] lg:px-8">
         <aside className="hidden lg:block">
           <div className="sticky top-24 rounded-2xl border bg-card p-5 shadow-[0_12px_40px_-24px_oklch(0.2_0.05_258/0.25)]">
-            <h2 className="mb-4 font-heading text-lg font-bold">{tr("filtersTitle")}</h2>
+            <h2 className="mb-4 font-heading text-lg font-bold">
+              {tr("filtersTitle")}
+            </h2>
             <FilterForm
               key={filterKey}
               category={category}
               makes={makes}
+              regions={regions}
               values={query}
             />
           </div>
@@ -133,6 +148,7 @@ export async function CategoryResults({
               key={filterKey}
               category={category}
               makes={makes}
+              regions={regions}
               values={query}
               activeCount={activeFilters}
             />
@@ -140,6 +156,7 @@ export async function CategoryResults({
               {tr("count", { count: total })}
             </p>
             <SortSelect
+              category={category}
               value={query.sort}
               currentParams={flat}
               className="h-10 min-w-0 flex-1 rounded-xl data-[size=default]:h-10 lg:w-52 lg:flex-none"
@@ -180,7 +197,7 @@ export async function CategoryResults({
               {items.map((listing, i) => (
                 <div
                   key={listing.slug}
-                  className="animate-fade-up h-full"
+                  className="h-full animate-fade-up"
                   style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
                 >
                   <ListingCard listing={listing} priority={i < 3} />

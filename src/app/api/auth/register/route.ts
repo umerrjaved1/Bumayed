@@ -32,8 +32,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message:
-        "Account created. If you registered with email, check your inbox to verify before signing in.",
+      // Tells the next screen what to say: link sent, no email service yet, or phone only.
+      verification: result.verification,
     });
   } catch (err) {
     console.error("POST /api/auth/register", err);

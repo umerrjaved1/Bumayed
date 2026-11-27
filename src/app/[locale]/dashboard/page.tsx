@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { listMyListings } from "@/modules/listings/seller-service";
+import { prisma } from "@/lib/prisma";
+import { isEmailDeliveryConfigured } from "@/lib/email";
+import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +27,16 @@ export default async function DashboardPage({
   }
 
   const t = await getTranslations("dashboard");
-  const listings = await listMyListings({
-    id: session.user.id,
-    role: session.user.role,
-  });
+  const [listings, account] = await Promise.all([
+    listMyListings({ id: session.user.id, role: session.user.role }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true, emailVerifiedAt: true },
+    }),
+  ]);
+  // Only nag when a link can actually be delivered; otherwise there is nothing to do.
+  const needsEmailVerification =
+    !!account?.email && !account.emailVerifiedAt && isEmailDeliveryConfigured();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -35,6 +44,10 @@ export default async function DashboardPage({
       <p className="mt-2 text-muted-foreground">
         {t("welcome", { name: session.user.name ?? "there" })}
       </p>
+
+      {needsEmailVerification && account?.email && (
+        <VerifyEmailBanner email={account.email} />
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>

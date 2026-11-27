@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
-import { AuthShell } from "@/components/auth/auth-shell";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getSession } from "@/lib/session";
+import { VerifyResult } from "@/components/auth/verify-result";
 import { verifyEmail } from "@/modules/auth/service";
 
 export async function generateMetadata({
@@ -16,6 +14,8 @@ export async function generateMetadata({
   return { title: t("verifyTitle") };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function VerifyEmailPage({
   params,
   searchParams,
@@ -27,9 +27,10 @@ export default async function VerifyEmailPage({
   setRequestLocale(locale);
   const t = await getTranslations("auth");
   const sp = await searchParams;
+  const session = await getSession();
 
   let ok = false;
-  let message = t("invalidVerifyLink");
+  let message = "";
 
   if (sp.email && sp.token) {
     const result = await verifyEmail({
@@ -39,20 +40,20 @@ export default async function VerifyEmailPage({
     });
     if (result.ok) {
       ok = true;
-      message = t("verifySuccess");
-    } else {
-      message = result.message;
+    } else if (result.code === "RATE_LIMITED") {
+      // The server's own wording is English only; use the page's language.
+      message = t("resendRateLimited");
     }
+  } else {
+    message = t("invalidVerifyLink");
   }
 
   return (
-    <AuthShell title={t("verifyTitle")}>
-      <Alert variant={ok ? "default" : "destructive"}>
-        <AlertDescription>{message}</AlertDescription>
-      </Alert>
-      <Button className="mt-6 w-full" render={<Link href="/auth/login" />}>
-        {t("backToLogin")}
-      </Button>
-    </AuthShell>
+    <VerifyResult
+      ok={ok}
+      email={sp.email ?? null}
+      signedIn={!!session?.user}
+      message={message}
+    />
   );
 }

@@ -35,3 +35,17 @@ describe("registerSchema", () => {
     expect(r.success).toBe(false);
   });
 });
+
+describe("registerSchema locale", () => {
+  it("accepts en/ar and rejects anything else", () => {
+    const base = {
+      displayName: "Ali",
+      accountType: "individual" as const,
+      email: "",
+      phone: "+971501234567",
+      password: "password1",
+    };
+    expect(registerSchema.safeParse({ ...base, locale: "ar" }).success).toBe(true);
+    expect(registerSchema.safeParse({ ...base, locale: "fr" }).success).toBe(false);
+  });
+});

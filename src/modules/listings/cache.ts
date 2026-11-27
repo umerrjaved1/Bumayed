@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import * as repo from "./repository";
 import { toPublicDto } from "./mappers";
 import { parseListingQuery } from "./query";
+import type { GccCode } from "@/lib/gcc";
 import type { ListingPublicDto, VehicleCategoryCode } from "./types";
 import { CATALOG_TAG, PUBLIC_LISTINGS_TAG } from "./invalidate";
 
@@ -15,7 +16,12 @@ export { invalidateCatalog, invalidatePublicListings } from "./invalidate";
  * away when an ad changes (see `invalidatePublicListings`).
  */
 
-const CATEGORIES: VehicleCategoryCode[] = ["cars", "motorcycles", "boats"];
+const CATEGORIES: VehicleCategoryCode[] = [
+  "cars",
+  "motorcycles",
+  "boats",
+  "plates",
+];
 
 export type HomeData = {
   featured: ListingPublicDto[];
@@ -24,16 +30,23 @@ export type HomeData = {
   counts: Record<VehicleCategoryCode, number>;
 };
 
-export const getHomeData = unstable_cache(
-  async (): Promise<HomeData> => {
+/**
+ * Homepage rows for one country ("all" = the whole GCC). The cache is keyed by
+ * the country argument, so each country has its own entry.
+ */
+const homeDataForCountry = unstable_cache(
+  async (country: string): Promise<HomeData> => {
+    const only = country === "all" ? undefined : country;
     const [featuredRows, latestRows, popularMakes, ...counts] =
       await Promise.all([
-        repo.findFeatured(6),
-        repo.findLatest(12),
+        repo.findFeatured(6, only),
+        repo.findLatest(12, only),
         // Only makes with live ads, so no chip leads to an empty results page.
-        repo.findMakesWithActiveListings("cars"),
+        repo.findMakesWithActiveListings("cars", only),
         ...CATEGORIES.map((c) =>
-          repo.countListings(parseListingQuery({}, c)),
+          repo.countListings(
+            parseListingQuery({}, c, only as GccCode | undefined),
+          ),
         ),
       ]);
     const featured = featuredRows.map(toPublicDto);
@@ -51,12 +64,19 @@ export const getHomeData = unstable_cache(
         cars: counts[0] ?? 0,
         motorcycles: counts[1] ?? 0,
         boats: counts[2] ?? 0,
+        plates: counts[3] ?? 0,
       },
     };
   },
-  ["home-data-v1"],
+  // v3: ads now carry price/currency/country; older cached rows lack them.
+  ["home-data-v3"],
   { revalidate: 60, tags: [PUBLIC_LISTINGS_TAG] },
 );
+
+/** Homepage data for a country, or for the whole GCC when `country` is undefined. */
+export function getHomeData(country?: GccCode): Promise<HomeData> {
+  return homeDataForCountry(country ?? "all");
+}
 
 /** Makes for the filter dropdowns: catalog data that rarely changes. */
 export const getCachedMakesForCategory = unstable_cache(

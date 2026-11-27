@@ -1,7 +1,17 @@
 /** Public DTOs + query types shared by UI, API and services. */
 
+import type { CurrencyCode, GccCode } from "@/lib/gcc";
+
+/** First-level region code of any GCC country (RUH, KWC, DXB…). */
+export type RegionCode = string;
+
+/** UAE emirate codes (number plates are issued per emirate). */
 export type EmirateCode = "AUH" | "DXB" | "SHJ" | "AJM" | "UAQ" | "RAK" | "FUJ";
-export type VehicleCategoryCode = "cars" | "motorcycles" | "boats";
+export type VehicleCategoryCode =
+  | "cars"
+  | "motorcycles"
+  | "boats"
+  | "plates";
 
 export type ListingSellerDto = {
   name: string;
@@ -19,14 +29,22 @@ export type ListingPublicDto = {
   slug: string;
   category: VehicleCategoryCode;
   title: string;
+  /** What the seller typed: whole units of `currency`. Show this to people. */
+  price: number;
+  currency: CurrencyCode;
+  /** AED equivalent, for comparing across countries only. */
   priceAed: number;
+  country: GccCode;
   negotiable?: boolean;
   year: number;
   mileageKm: number | null;
   make: string;
   model: string;
   trim?: string;
-  emirate: EmirateCode;
+  /** Region code (the value used in ?emirate=). */
+  emirate: RegionCode;
+  regionEn: string;
+  regionAr: string;
   city: string;
   /** Arabic city name, shown on Arabic pages. */
   cityAr: string;
@@ -51,6 +69,11 @@ export type ListingPublicDto = {
   lengthFt?: number;
   engineHours?: number;
   engineType?: string;
+  /** Number plates only. */
+  plateEmirate?: EmirateCode;
+  plateCode?: string;
+  plateNumber?: string;
+  plateType?: "private" | "motorcycle" | "classic";
   seller: ListingSellerDto;
 };
 
@@ -70,6 +93,10 @@ export type ListingQuery = {
   yearMin?: number;
   yearMax?: number;
   mileageMax?: number;
+  /** Browse one country (undefined = all of the GCC). */
+  country?: GccCode;
+  /** Currency that priceMin/priceMax are typed in: the country's own, or AED for all of the GCC. */
+  currency: CurrencyCode;
   emirate?: string;
   condition?: "new" | "used";
   sellerType?: "individual" | "dealer";
@@ -78,6 +105,10 @@ export type ListingQuery = {
   regionalSpec?: string;
   motoType?: string;
   boatType?: string;
+  plateEmirate?: string;
+  plateType?: string;
+  plateDigits?: string;
+  plateCode?: string;
   sort: ListingSort;
   page: number;
 };
@@ -90,10 +121,12 @@ export const CATEGORY_CODE_TO_ENUM = {
   cars: "CARS",
   motorcycles: "MOTORCYCLES",
   boats: "BOATS",
+  plates: "PLATES",
 } as const;
 
 export const CATEGORY_ENUM_TO_CODE = {
   CARS: "cars",
   MOTORCYCLES: "motorcycles",
   BOATS: "boats",
+  PLATES: "plates",
 } as const;

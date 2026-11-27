@@ -4,6 +4,9 @@ import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CountrySwitcher } from "@/components/layout/country-switcher";
+import { selectedCountry } from "@/lib/country";
+import { getActiveCountryCodes } from "@/modules/locations/service";
 import { HeaderShell } from "@/components/layout/header-shell";
 import { NavLink } from "@/components/layout/nav-link";
 import { BrandMark } from "@/components/layout/brand-mark";
@@ -17,7 +20,11 @@ export async function SiteHeader() {
   const tn = await getTranslations("nav");
   const td = await getTranslations("dashboard");
   const tauth = await getTranslations("auth");
-  const session = await getSession();
+  const [session, countries, selected] = await Promise.all([
+    getSession(),
+    getActiveCountryCodes(),
+    selectedCountry(),
+  ]);
 
   const role = session?.user?.role;
   const accountHref =
@@ -51,6 +58,10 @@ export async function SiteHeader() {
     { href: "/cars", label: tn("cars") },
     { href: "/motorcycles", label: tn("motorcycles") },
     { href: "/boats", label: tn("boats") },
+    // Number plates are issued per UAE emirate: no tab when browsing another country.
+    ...(selected === undefined || selected === "AE"
+      ? [{ href: "/plates", label: tn("plates") }]
+      : []),
   ] as const;
 
   return (
@@ -60,6 +71,8 @@ export async function SiteHeader() {
           links={links}
           brandLabel={t("brand")}
           account={mobileAccount}
+          countries={countries}
+          selectedCountry={selected}
         />
 
         <Link
@@ -90,13 +103,15 @@ export async function SiteHeader() {
         </nav>
 
         <div className="ms-auto flex items-center gap-2">
+          {/* Only appears once more than one country is switched on */}
+          <div className="hidden md:block">
+            <CountrySwitcher countries={countries} selected={selected} />
+          </div>
           <LanguageSwitcher />
           <Button
             variant="ghost"
             className="hidden h-9 rounded-full px-3.5 sm:inline-flex"
-            render={
-              <Link href={session?.user ? accountHref : "/auth/login"} />
-            }
+            render={<Link href={session?.user ? accountHref : "/auth/login"} />}
           >
             <UserRound className="size-4" aria-hidden />
             {session?.user ? (session.user.name ?? t("login")) : t("login")}

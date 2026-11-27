@@ -3,10 +3,13 @@ import { BrandMark } from "@/components/layout/brand-mark";
 export function AuthShell({
   title,
   subtitle,
+  icon,
   children,
 }: {
   title: string;
   subtitle?: string;
+  /** Replaces the logo at the top of the card (for example a mail icon). */
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -22,9 +25,11 @@ export function AuthShell({
 
       <div className="mx-auto flex min-h-[75vh] max-w-md flex-col px-4 pt-10 pb-16 sm:justify-center sm:pt-16">
         <div className="animate-fade-up rounded-3xl border bg-card p-6 shadow-[0_30px_80px_-40px_oklch(0.2_0.05_258/0.5)] sm:p-8">
-          <span className="group inline-flex">
-            <BrandMark className="size-11" />
-          </span>
+          {icon ?? (
+            <span className="group inline-flex">
+              <BrandMark className="size-11" />
+            </span>
+          )}
           <h1 className="mt-5 font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">
             {title}
           </h1>

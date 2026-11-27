@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Car,
   CircleGauge,
+  Hash,
   Languages,
   Megaphone,
   MessagesSquare,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { SearchBar } from "@/components/shared/search-bar";
 import { CategoryCard } from "@/components/shared/category-card";
+import { PlateBadge } from "@/components/shared/plate-badge";
 import { ListingCard } from "@/components/shared/listing-card";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/motion/reveal";
@@ -23,6 +25,11 @@ import { Rail } from "@/components/motion/rail";
 import { railItem } from "@/components/motion/rail-item";
 import { getSession } from "@/lib/session";
 import { getHomeData } from "@/modules/listings/cache";
+import { selectedCountry } from "@/lib/country";
+import {
+  getActiveCountryCodes,
+  getRegionsWithCities,
+} from "@/modules/locations/service";
 import { RecentlyViewedRail } from "@/components/shared/recently-viewed";
 import { Link } from "@/i18n/navigation";
 
@@ -85,10 +92,24 @@ export default async function HomePage({
   const tcommon = await getTranslations("common");
 
   // Public rows and counts come from a short-lived shared cache (see cache.ts).
-  const [{ featured, latest, popularMakes, counts }, session] =
-    await Promise.all([getHomeData(), getSession()]);
-  const { cars: carCount, motorcycles: motoCount, boats: boatCount } = counts;
-  const totalLive = carCount + motoCount + boatCount;
+  const country = await selectedCountry();
+  // UAE keeps its own wording ("7 emirates"); every other view says GCC / regions.
+  const inUae = country === "AE";
+  const activeCountries = await getActiveCountryCodes();
+  const [{ featured, latest, popularMakes, counts }, session, regions] =
+    await Promise.all([
+      getHomeData(country),
+      getSession(),
+      // Regions of the selected country for the search box (none for the whole GCC).
+      country ? getRegionsWithCities(country) : Promise.resolve([]),
+    ]);
+  const {
+    cars: carCount,
+    motorcycles: motoCount,
+    boats: boatCount,
+    plates: plateCount,
+  } = counts;
+  const totalLive = carCount + motoCount + boatCount + plateCount;
 
   // Dealers go straight to packages; everyone else signs up as a dealer first.
   const role = session?.user?.role;
@@ -101,13 +122,31 @@ export default async function HomePage({
 
   const categories = [
     { key: "cars", href: "/cars", icon: Car, count: carCount },
-    { key: "motorcycles", href: "/motorcycles", icon: CircleGauge, count: motoCount },
+    {
+      key: "motorcycles",
+      href: "/motorcycles",
+      icon: CircleGauge,
+      count: motoCount,
+    },
     { key: "boats", href: "/boats", icon: Ship, count: boatCount },
-  ] as const;
+    { key: "plates", href: "/plates", icon: Hash, count: plateCount },
+  ].filter(
+    // Number plates are issued per UAE emirate, so only the UAE (or all of the GCC) lists them.
+    (c) => c.key !== "plates" || country === undefined || country === "AE",
+  ) as {
+    key: "cars" | "motorcycles" | "boats" | "plates";
+    href: string;
+    icon: typeof Car;
+    count: number;
+  }[];
 
   const steps = [
     { icon: Megaphone, title: t("howStep1Title"), body: t("howStep1Body") },
-    { icon: MessagesSquare, title: t("howStep2Title"), body: t("howStep2Body") },
+    {
+      icon: MessagesSquare,
+      title: t("howStep2Title"),
+      body: t("howStep2Body"),
+    },
     { icon: BadgeCheck, title: t("howStep3Title"), body: t("howStep3Body") },
   ];
 
@@ -119,7 +158,12 @@ export default async function HomePage({
 
   const stats = [
     { value: totalLive, label: t("statLive") },
-    { value: 7, label: t("statEmirates") },
+    country
+      ? {
+          value: regions.length,
+          label: country === "AE" ? t("statEmirates") : t("statRegions"),
+        }
+      : { value: activeCountries.length, label: t("statCountries") },
     { value: 2, label: t("statLanguages") },
   ];
 
@@ -136,49 +180,54 @@ export default async function HomePage({
           className="-z-20 animate-ken-burns object-cover opacity-45"
         />
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/70 via-ink/80 to-ink" />
-        <div className="bg-grid mask-fade-b absolute inset-0 -z-10 opacity-60" />
+        <div className="absolute inset-0 -z-10 bg-grid mask-fade-b opacity-60" />
         {/* Ambient glows */}
         <div
           aria-hidden
-          className="animate-float absolute -top-32 end-[-10%] -z-10 size-[520px] rounded-full bg-accent/25 blur-[120px]"
+          className="absolute end-[-10%] -top-32 -z-10 size-[520px] animate-float rounded-full bg-accent/25 blur-[120px]"
         />
         <div
           aria-hidden
-          className="absolute -bottom-40 start-[-10%] -z-10 size-[480px] rounded-full bg-primary/60 blur-[120px]"
+          className="absolute start-[-10%] -bottom-40 -z-10 size-[480px] rounded-full bg-primary/60 blur-[120px]"
         />
 
         <div className="mx-auto max-w-7xl px-4 pt-10 pb-14 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
-          <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur">
+          <div className="inline-flex animate-fade-up items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur">
             <span className="relative flex size-2">
-              <span className="animate-pulse-ring absolute inline-flex size-full rounded-full bg-success" />
+              <span className="absolute inline-flex size-full animate-pulse-ring rounded-full bg-success" />
               <span className="relative inline-flex size-2 rounded-full bg-success" />
             </span>
-            {t("heroEyebrow")}
+            {inUae ? t("heroEyebrow") : t("heroEyebrowGcc")}
           </div>
 
           <h1
-            className="animate-fade-up mt-6 max-w-4xl font-heading text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl lg:text-7xl"
+            className="mt-6 max-w-4xl animate-fade-up font-heading text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl lg:text-7xl"
             style={{ animationDelay: "80ms" }}
           >
             {t("heroTitleLead")}{" "}
             <span className="text-gradient-gold">{t("heroTitleAccent")}</span>
           </h1>
           <p
-            className="animate-fade-up mt-5 max-w-2xl text-base text-white/70 sm:text-lg"
+            className="mt-5 max-w-2xl animate-fade-up text-base text-white/70 sm:text-lg"
             style={{ animationDelay: "160ms" }}
           >
-            {t("heroSubtitle")}
+            {inUae ? t("heroSubtitle") : t("heroSubtitleGcc")}
           </p>
 
           <div
-            className="animate-fade-up mt-10 max-w-4xl"
+            className="mt-10 max-w-4xl animate-fade-up"
             style={{ animationDelay: "240ms" }}
           >
-            <SearchBar popular={popularMakes} />
+            <SearchBar
+              popular={popularMakes}
+              regions={regions}
+              country={country}
+              showPlates={country === undefined || country === "AE"}
+            />
           </div>
 
           <ul
-            className="animate-fade-up mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/70"
+            className="mt-8 flex animate-fade-up flex-wrap gap-x-6 gap-y-3 text-sm text-white/70"
             style={{ animationDelay: "320ms" }}
           >
             {trust.map(({ icon: Icon, label }) => (
@@ -199,7 +248,9 @@ export default async function HomePage({
                 <dd className="font-heading text-2xl font-extrabold text-white sm:text-4xl">
                   <CountUp value={s.value} suffix={s.value > 10 ? "+" : ""} />
                 </dd>
-                <dd className="mt-1 text-xs text-white/60 sm:text-sm">{s.label}</dd>
+                <dd className="mt-1 text-xs text-white/60 sm:text-sm">
+                  {s.label}
+                </dd>
               </div>
             ))}
           </dl>
@@ -220,41 +271,56 @@ export default async function HomePage({
           subtitle={t("categoriesSubtitle")}
         />
         <div className="mt-7 sm:mt-10">
-        <Rail className="sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-2">
-          {categories.map(({ key, href, icon, count }, i) => (
-            <Reveal
-              key={key}
-              delay={i * 110}
-              className={
-                i === 0
-                  ? `${railItem} sm:col-span-2 lg:col-span-3 lg:row-span-2`
-                  : `${railItem} lg:col-span-2`
-              }
-            >
-              <CategoryCard
-                href={href}
-                icon={icon}
-                title={tc(key)}
-                description={tc(`${key}Description`)}
-                image={CATEGORY_IMAGES[key]}
-                countLabel={t("adsCount", { count })}
-                ctaLabel={t("explore")}
+          <Rail className="sm:grid-cols-2 lg:grid-cols-5 lg:grid-rows-2">
+            {categories.map(({ key, href, icon, count }, i) => (
+              <Reveal
+                key={key}
+                delay={i * 110}
                 className={
                   i === 0
-                    ? "h-full min-h-[22rem] sm:min-h-80 lg:min-h-[32rem]"
-                    : "h-full min-h-[22rem] sm:min-h-72"
+                    ? `${railItem} sm:col-span-2 lg:col-span-3 lg:row-span-2`
+                    : key === "plates"
+                      ? `${railItem} sm:col-span-2 lg:col-span-5`
+                      : `${railItem} lg:col-span-2`
                 }
-              />
-            </Reveal>
-          ))}
-        </Rail>
+              >
+                <CategoryCard
+                  href={href}
+                  icon={icon}
+                  title={tc(key)}
+                  description={tc(`${key}Description`)}
+                  image={key === "plates" ? undefined : CATEGORY_IMAGES[key]}
+                  visual={
+                    key === "plates" ? (
+                      <PlateBadge
+                        emirate="DXB"
+                        code="A"
+                        number="7"
+                        size="lg"
+                        label=""
+                      />
+                    ) : undefined
+                  }
+                  countLabel={t("adsCount", { count })}
+                  ctaLabel={t("explore")}
+                  className={
+                    i === 0
+                      ? "h-full min-h-[22rem] sm:min-h-80 lg:min-h-[32rem]"
+                      : key === "plates"
+                        ? "h-full min-h-[18rem] sm:min-h-64"
+                        : "h-full min-h-[22rem] sm:min-h-72"
+                  }
+                />
+              </Reveal>
+            ))}
+          </Rail>
         </div>
       </section>
 
       {/* ---------------- Featured ---------------- */}
       {featured.length > 0 && (
         <section className="relative">
-          <div className="bg-dots mask-fade-b absolute inset-x-0 top-0 -z-10 h-64 opacity-60" />
+          <div className="absolute inset-x-0 top-0 -z-10 h-64 bg-dots mask-fade-b opacity-60" />
           <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 sm:pb-20 lg:px-8">
             <SectionHeading
               title={t("featuredAds")}
@@ -287,10 +353,13 @@ export default async function HomePage({
               subtitle={t("makesSubtitle")}
             />
           </div>
-          <div className="marquee mask-fade-x mt-8 overflow-hidden" dir="ltr">
+          <div className="marquee mt-8 overflow-hidden mask-fade-x" dir="ltr">
             <ul className="marquee-track flex w-max gap-3">
               {[...popularMakes, ...popularMakes].map((make, i) => (
-                <li key={`${make}-${i}`} aria-hidden={i >= popularMakes.length || undefined}>
+                <li
+                  key={`${make}-${i}`}
+                  aria-hidden={i >= popularMakes.length || undefined}
+                >
                   <Link
                     href={`/cars?make=${encodeURIComponent(make)}`}
                     tabIndex={i >= popularMakes.length ? -1 : undefined}
@@ -340,28 +409,30 @@ export default async function HomePage({
             aria-hidden
             className="absolute inset-x-[16%] top-14 hidden h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent md:block"
           />
-        <ol className="grid gap-5 md:grid-cols-3">
-          {steps.map(({ icon: Icon, title, body }, i) => (
-            <Reveal as="li" key={i} delay={i * 120}>
-              <Spotlight className="group h-full rounded-3xl border bg-card p-7 transition-all duration-500 hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_24px_48px_-24px_oklch(0.2_0.05_258/0.3)]">
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between">
-                    <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-ink text-accent shadow-lg transition-transform duration-500 ease-[var(--ease-spring)] group-hover:-rotate-6 group-hover:scale-110">
-                      <Icon className="size-6" aria-hidden />
-                    </span>
-                    <span className="font-heading text-5xl font-extrabold text-foreground/[0.06] tabular-nums transition-colors duration-500 group-hover:text-accent/30">
-                      0{i + 1}
-                    </span>
+          <ol className="grid gap-5 md:grid-cols-3">
+            {steps.map(({ icon: Icon, title, body }, i) => (
+              <Reveal as="li" key={i} delay={i * 120}>
+                <Spotlight className="group h-full rounded-3xl border bg-card p-7 transition-all duration-500 hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_24px_48px_-24px_oklch(0.2_0.05_258/0.3)]">
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between">
+                      <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-ink text-accent shadow-lg transition-transform duration-500 ease-[var(--ease-spring)] group-hover:scale-110 group-hover:-rotate-6">
+                        <Icon className="size-6" aria-hidden />
+                      </span>
+                      <span className="font-heading text-5xl font-extrabold text-foreground/[0.06] tabular-nums transition-colors duration-500 group-hover:text-accent/30">
+                        0{i + 1}
+                      </span>
+                    </div>
+                    <h3 className="mt-6 font-heading text-lg font-bold">
+                      {title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {body}
+                    </p>
                   </div>
-                  <h3 className="mt-6 font-heading text-lg font-bold">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {body}
-                  </p>
-                </div>
-              </Spotlight>
-            </Reveal>
-          ))}
-        </ol>
+                </Spotlight>
+              </Reveal>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -369,14 +440,14 @@ export default async function HomePage({
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24 lg:px-8">
         <Reveal>
           <div className="relative isolate overflow-hidden rounded-[2rem] bg-ink px-6 py-10 text-ink-foreground sm:px-12 sm:py-16">
-            <div className="bg-grid absolute inset-0 -z-10 opacity-50" />
+            <div className="absolute inset-0 -z-10 bg-grid opacity-50" />
             <div
               aria-hidden
-              className="animate-gradient-pan absolute inset-0 -z-10 bg-[linear-gradient(120deg,transparent_20%,color-mix(in_oklch,var(--accent)_28%,transparent)_50%,transparent_80%)] bg-[length:200%_200%]"
+              className="absolute inset-0 -z-10 animate-gradient-pan bg-[linear-gradient(120deg,transparent_20%,color-mix(in_oklch,var(--accent)_28%,transparent)_50%,transparent_80%)] bg-[length:200%_200%]"
             />
             <div
               aria-hidden
-              className="animate-float absolute -end-20 -top-20 -z-10 size-80 rounded-full bg-accent/30 blur-[100px]"
+              className="absolute -end-20 -top-20 -z-10 size-80 animate-float rounded-full bg-accent/30 blur-[100px]"
             />
             <div className="flex flex-col items-stretch gap-8 sm:items-start lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">

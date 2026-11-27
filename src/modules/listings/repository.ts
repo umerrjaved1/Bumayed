@@ -10,6 +10,7 @@ import {
 } from "./types";
 import { keywordTerms, termVariants } from "./keyword";
 import { invalidatePublicListings } from "./invalidate";
+import { rangeToAed } from "@/lib/currency";
 
 const publicInclude = {
   category: true,
@@ -67,14 +68,24 @@ function keywordWhere(keyword: string): Prisma.ListingWhereInput[] {
       { make: { nameAr: { contains: v, mode: "insensitive" as const } } },
       { model: { nameEn: { contains: v, mode: "insensitive" as const } } },
       { model: { nameAr: { contains: v, mode: "insensitive" as const } } },
+      // Number plates: "1234" finds the plate even if the title was edited.
+      { specs: { path: ["plateNumber"], string_contains: v } },
+      { specs: { path: ["plateCode"], equals: v.toUpperCase() } },
     ]),
   }));
 }
+
+/**
+ * Public pages only show ads from countries that are switched on, so adding a
+ * country's data (or dev sample ads) never exposes it before launch.
+ */
+const IN_ACTIVE_COUNTRY = { emirate: { country: { isActive: true } } } as const;
 
 /** Build Prisma where for server-side filters (playbook §7.3). */
 export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
   const and: Prisma.ListingWhereInput[] = [
     { status: ListingStatus.ACTIVE },
+    IN_ACTIVE_COUNTRY,
     { category: { code: CATEGORY_CODE_TO_ENUM[q.category] } },
   ];
 
@@ -82,8 +93,14 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
   if (q.make) {
     and.push({ make: { nameEn: { equals: q.make, mode: "insensitive" } } });
   }
-  if (q.priceMin != null) and.push({ priceAed: { gte: q.priceMin } });
-  if (q.priceMax != null) and.push({ priceAed: { lte: q.priceMax } });
+  if (q.country) and.push({ countryCode: q.country });
+  if (q.priceMin != null || q.priceMax != null) {
+    // Typed in the browsed currency; compared on the AED equivalent so every
+    // country's ads can be filtered and sorted together.
+    const aed = rangeToAed({ min: q.priceMin, max: q.priceMax }, q.currency);
+    if (aed.min != null) and.push({ priceAed: { gte: aed.min } });
+    if (aed.max != null) and.push({ priceAed: { lte: aed.max } });
+  }
   if (q.yearMin != null) and.push({ year: { gte: q.yearMin } });
   if (q.yearMax != null) and.push({ year: { lte: q.yearMax } });
   if (q.mileageMax != null) and.push({ mileageKm: { lte: q.mileageMax } });
@@ -128,6 +145,20 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
     and.push({
       specs: { path: ["boatType"], equals: q.boatType.toLowerCase() },
     });
+  }
+
+  if (q.plateEmirate) {
+    and.push({ specs: { path: ["plateEmirate"], equals: q.plateEmirate } });
+  }
+  if (q.plateType) {
+    and.push({ specs: { path: ["plateType"], equals: q.plateType } });
+  }
+  if (q.plateCode) {
+    and.push({ specs: { path: ["plateCode"], equals: q.plateCode } });
+  }
+  if (q.plateDigits) {
+    // Digit count = length of the stored number, so match the number's shape.
+    and.push({ specs: { path: ["plateDigits"], equals: Number(q.plateDigits) } });
   }
 
   return { AND: and };
@@ -176,10 +207,12 @@ export async function findBySlug(slug: string) {
   });
 }
 
-export async function findFeatured(limit = 6) {
+export async function findFeatured(limit = 6, country?: string) {
   return prisma.listing.findMany({
     where: {
       status: ListingStatus.ACTIVE,
+      ...IN_ACTIVE_COUNTRY,
+      ...(country ? { countryCode: country } : {}),
       promotions: {
         some: {
           type: "FEATURED",
@@ -194,9 +227,13 @@ export async function findFeatured(limit = 6) {
   });
 }
 
-export async function findLatest(limit = 6) {
+export async function findLatest(limit = 6, country?: string) {
   return prisma.listing.findMany({
-    where: { status: ListingStatus.ACTIVE },
+    where: {
+      status: ListingStatus.ACTIVE,
+      ...IN_ACTIVE_COUNTRY,
+      ...(country ? { countryCode: country } : {}),
+    },
     include: publicInclude,
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     take: limit,
@@ -207,11 +244,14 @@ export async function findSimilar(
   category: VehicleCategoryCode,
   excludeSlug: string,
   limit = 3,
+  country?: string,
 ) {
   return prisma.listing.findMany({
     where: {
       status: ListingStatus.ACTIVE,
       slug: { not: excludeSlug },
+      ...IN_ACTIVE_COUNTRY,
+      ...(country ? { countryCode: country } : {}),
       category: { code: CATEGORY_CODE_TO_ENUM[category] },
     },
     include: publicInclude,
@@ -235,12 +275,19 @@ export async function findMakesForCategory(category: VehicleCategoryCode) {
 /** Makes that have at least one live ad, so links never lead to an empty page. */
 export async function findMakesWithActiveListings(
   category: VehicleCategoryCode,
+  country?: string,
 ) {
   const rows = await prisma.vehicleMake.findMany({
     where: {
       isActive: true,
       category: { code: CATEGORY_CODE_TO_ENUM[category] },
-      listings: { some: { status: ListingStatus.ACTIVE } },
+      listings: {
+        some: {
+          status: ListingStatus.ACTIVE,
+          ...IN_ACTIVE_COUNTRY,
+          ...(country ? { countryCode: country } : {}),
+        },
+      },
     },
     orderBy: { nameEn: "asc" },
     select: { nameEn: true },
@@ -323,8 +370,12 @@ export async function findCategoryByCode(code: VehicleCategoryCode) {
   });
 }
 
+/** A region with its country, so callers know the currency and whether the country is open. */
 export async function findEmirateByCode(code: string) {
-  return prisma.emirate.findUnique({ where: { code } });
+  return prisma.emirate.findUnique({
+    where: { code: code.toUpperCase() },
+    include: { country: true },
+  });
 }
 
 export async function cityBelongsToEmirate(cityId: string, emirateId: string) {

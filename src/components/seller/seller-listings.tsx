@@ -110,7 +110,11 @@ export function SellerListings() {
                 <p className="font-medium">{l.title}</p>
                 <Badge variant="secondary">{l.category}</Badge>
               </div>
-              <PriceDisplay amountAed={l.priceAed} className="text-sm" />
+              <PriceDisplay
+                amount={l.price}
+                currency={l.currency}
+                className="text-sm"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button

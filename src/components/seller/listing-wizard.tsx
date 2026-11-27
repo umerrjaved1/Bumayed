@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,31 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { VehicleCategoryCode } from "@/modules/listings/types";
+import { PhoneField } from "@/components/auth/phone-field";
+import { formatMoney } from "@/lib/currency";
+import { gccByCode, type GccCode } from "@/lib/gcc";
+import { isValidPhone, normalizePhoneInput } from "@/modules/auth/phone";
+import {
+  PLATE_CODE_RE,
+  PLATE_EMIRATES,
+  PLATE_NUMBER_RE,
+  PLATE_TYPES,
+  normalizePlateCode,
+  normalizePlateNumber,
+  plateTitle,
+  type PlateEmirate,
+  type PlateType,
+} from "@/modules/listings/plates";
+import { PlateBadge, plateEmirateName } from "@/components/shared/plate-badge";
 
 type MakeOpt = {
   id: string;
   nameEn: string;
-  models: { id: string; nameEn: string; trims: { id: string; nameEn: string }[] }[];
+  models: {
+    id: string;
+    nameEn: string;
+    trims: { id: string; nameEn: string }[];
+  }[];
 };
 
 const STEPS = [
@@ -29,12 +49,25 @@ const STEPS = [
 
 type Step = (typeof STEPS)[number];
 
-const EMIRATES = ["AUH", "DXB", "SHJ", "AJM", "UAQ", "RAK", "FUJ"] as const;
+type WizardRegion = {
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  cities: { id: string; nameEn: string; nameAr: string }[];
+};
+type WizardCountry = { code: GccCode; nameEn: string; nameAr: string };
 
-export function ListingWizard() {
+export function ListingWizard({
+  defaultCountry = "AE",
+}: {
+  /** Country pre-selected for the ad (the one the seller is browsing). */
+  defaultCountry?: GccCode;
+}) {
+  const locale = useLocale();
   const t = useTranslations("wizard");
   const te = useTranslations("emirates");
   const tf = useTranslations("filters");
+  const tp = useTranslations("plates");
   const router = useRouter();
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -46,7 +79,6 @@ export function ListingWizard() {
 
   const [category, setCategory] = useState<VehicleCategoryCode>("cars");
   const [makes, setMakes] = useState<MakeOpt[]>([]);
-  const [cities, setCities] = useState<{ id: string; nameEn: string }[]>([]);
   const [makeId, setMakeId] = useState("");
   const [modelId, setModelId] = useState("");
   const [trimId, setTrimId] = useState("");
@@ -58,13 +90,28 @@ export function ListingWizard() {
   const [condition, setCondition] = useState("used");
   const [motoType, setMotoType] = useState("cruiser");
   const [boatType, setBoatType] = useState("yacht");
+  const [plateEmirate, setPlateEmirate] = useState<PlateEmirate>("DXB");
+  const [plateCode, setPlateCode] = useState("");
+  const [plateNumber, setPlateNumber] = useState("");
+  const [plateType, setPlateType] = useState<PlateType>("private");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priceAed, setPriceAed] = useState("");
+  // What the seller types, in whole units of their country's currency.
+  const [priceInput, setPriceInput] = useState("");
   const [negotiable, setNegotiable] = useState(false);
-  const [emirateCode, setEmirateCode] = useState<(typeof EMIRATES)[number]>("DXB");
+  const [countries, setCountries] = useState<WizardCountry[]>([]);
+  const [country, setCountry] = useState<GccCode>(defaultCountry);
+  const [regions, setRegions] = useState<WizardRegion[]>([]);
+  const [emirateCode, setEmirateCode] = useState(
+    defaultCountry === "AE" ? "DXB" : "",
+  );
   const [cityId, setCityId] = useState("");
-  const [contactPhone, setContactPhone] = useState("+971");
+  const countryInfo = gccByCode(country)!;
+  const [phoneDial, setPhoneDial] = useState(countryInfo.dial);
+  const [phoneNational, setPhoneNational] = useState("");
+  const contactPhone = phoneNational.trim()
+    ? normalizePhoneInput(phoneNational, phoneDial)
+    : "";
   const [videoUrl, setVideoUrl] = useState("");
 
   const models = useMemo(
@@ -83,23 +130,64 @@ export function ListingWizard() {
       .catch(() => setMakes([]));
   }, [category]);
 
+  /**
+   * Choosing a country also sets its dialling code and drops number plates
+   * (they are issued per UAE emirate, so they only exist for the UAE).
+   * Called from the picker and when the country list first arrives.
+   */
+  function applyCountry(code: GccCode) {
+    setCountry(code);
+    setPhoneDial(gccByCode(code)!.dial);
+    if (code !== "AE") setCategory((c) => (c === "plates" ? "cars" : c));
+  }
+
+  // Countries that are switched on (the picker only shows when there is a choice).
   useEffect(() => {
-    fetch(`/api/seller/catalog?emirate=${emirateCode}`)
+    fetch("/api/locations")
       .then((r) => r.json())
       .then((d) => {
-        setCities(d.cities ?? []);
-        const list: { id: string }[] = d.cities ?? [];
-        setCityId((prev) =>
-          list.some((c) => c.id === prev) ? prev : list[0]?.id || "",
+        const list: WizardCountry[] = d.countries ?? [];
+        setCountries(list);
+        // The suggested country may not be open yet: start from one that is.
+        if (list.length > 0 && !list.some((c) => c.code === defaultCountry)) {
+          applyCountry(list[0]!.code);
+        }
+      })
+      .catch(() => setCountries([]));
+    // Runs once; applyCountry only sets state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Regions and cities of the chosen country. Keep the current choice when it
+  // still exists, otherwise start from the first region.
+  useEffect(() => {
+    fetch(`/api/locations?country=${country}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const list: WizardRegion[] = d.regions ?? [];
+        setRegions(list);
+        setEmirateCode((prev) =>
+          list.some((r) => r.code === prev) ? prev : (list[0]?.code ?? ""),
         );
       })
-      .catch(() => setCities([]));
-  }, [emirateCode]);
+      .catch(() => setRegions([]));
+  }, [country]);
+
+  const cities = useMemo(
+    () => regions.find((r) => r.code === emirateCode)?.cities ?? [],
+    [regions, emirateCode],
+  );
+  // The chosen city, or the first one when the region (and so the list) changed.
+  const effectiveCityId = cities.some((c) => c.id === cityId)
+    ? cityId
+    : (cities[0]?.id ?? "");
+
+  const isPlates = category === "plates";
 
   function buildPayload(submit: boolean) {
-    const specs: Record<string, string | number | boolean> = {
-      condition: condition.toUpperCase(),
-    };
+    const specs: Record<string, string | number | boolean> = isPlates
+      ? { plateEmirate, plateCode, plateNumber, plateType }
+      : { condition: condition.toUpperCase() };
     if (category === "cars") {
       specs.transmission = transmission.toUpperCase();
       specs.fuelType = fuelType.toUpperCase();
@@ -112,18 +200,18 @@ export function ListingWizard() {
       category,
       title,
       description,
-      priceAed: Number(priceAed),
+      price: Number(priceInput),
       negotiable,
-      makeId: makeId || null,
-      modelId: modelId || null,
-      trimId: trimId || null,
-      year: Number(year),
-      mileageKm: mileageKm === "" ? null : Number(mileageKm),
+      makeId: isPlates ? null : makeId || null,
+      modelId: isPlates ? null : modelId || null,
+      trimId: isPlates ? null : trimId || null,
+      year: isPlates ? null : Number(year),
+      mileageKm: isPlates || mileageKm === "" ? null : Number(mileageKm),
       emirateCode,
-      cityId,
+      cityId: effectiveCityId,
       specs,
-      contactPhone: /^\+[1-9]\d{7,14}$/.test(contactPhone) ? contactPhone : "",
-      contactWhatsapp: /^\+[1-9]\d{7,14}$/.test(contactPhone) ? contactPhone : "",
+      contactPhone: isValidPhone(contactPhone) ? contactPhone : "",
+      contactWhatsapp: isValidPhone(contactPhone) ? contactPhone : "",
       videoUrl: videoUrl || null,
       submit,
     };
@@ -136,7 +224,9 @@ export function ListingWizard() {
     try {
       const payload = buildPayload(submit);
       const res = await fetch(
-        listingId ? `/api/seller/listings/${listingId}` : "/api/seller/listings",
+        listingId
+          ? `/api/seller/listings/${listingId}`
+          : "/api/seller/listings",
         {
           method: listingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -190,6 +280,26 @@ export function ListingWizard() {
 
   async function next() {
     setError(null);
+    if (step === "specs" && isPlates) {
+      if (!PLATE_CODE_RE.test(plateCode)) {
+        setError(tp("codeInvalid"));
+        return;
+      }
+      if (!PLATE_NUMBER_RE.test(plateNumber)) {
+        setError(tp("numberInvalid"));
+        return;
+      }
+      // Suggest a title the seller can still edit on the next step.
+      if (title.trim() === "") {
+        setTitle(
+          plateTitle(
+            plateEmirateName(plateEmirate, "en"),
+            plateCode,
+            plateNumber,
+          ),
+        );
+      }
+    }
     if (step === "details") {
       if (title.trim().length < 8) {
         setError(t("titleTooShort"));
@@ -201,12 +311,16 @@ export function ListingWizard() {
       }
     }
     if (step === "price") {
-      const price = Number(priceAed);
+      const price = Number(priceInput);
       if (!Number.isInteger(price) || price <= 0) {
         setError(t("priceRequired"));
         return;
       }
-      if (!cityId) {
+      if (phoneNational.trim() && !isValidPhone(contactPhone)) {
+        setError(t("phoneInvalid"));
+        return;
+      }
+      if (!effectiveCityId) {
         setError(t("cityRequired"));
         return;
       }
@@ -222,7 +336,8 @@ export function ListingWizard() {
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        {t("stepOf", { current: stepIndex + 1, total: STEPS.length })} — {t(`steps.${step}`)}
+        {t("stepOf", { current: stepIndex + 1, total: STEPS.length })} —{" "}
+        {t(`steps.${step}`)}
       </p>
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
@@ -240,26 +355,101 @@ export function ListingWizard() {
 
       <div className="mt-8 space-y-4">
         {step === "category" && (
-          <div className="grid gap-2 sm:grid-cols-3">
-            {(["cars", "motorcycles", "boats"] as const).map((c) => (
-              <Button
-                key={c}
-                type="button"
-                variant={category === c ? "default" : "outline"}
-                onClick={() => {
-                  setCategory(c);
-                  setMakeId("");
-                  setModelId("");
-                  setTrimId("");
-                }}
-              >
-                {t(`categories.${c}`)}
-              </Button>
-            ))}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(["cars", "motorcycles", "boats", "plates"] as const)
+              .filter((c) => c !== "plates" || country === "AE")
+              .map((c) => (
+                <Button
+                  key={c}
+                  type="button"
+                  variant={category === c ? "default" : "outline"}
+                  onClick={() => {
+                    setCategory(c);
+                    setMakeId("");
+                    setModelId("");
+                    setTrimId("");
+                  }}
+                >
+                  {t(`categories.${c}`)}
+                </Button>
+              ))}
           </div>
         )}
 
-        {step === "specs" && (
+        {step === "specs" && isPlates && (
+          <>
+            <div className="flex justify-center rounded-xl bg-muted/60 py-6">
+              <PlateBadge
+                emirate={plateEmirate}
+                code={plateCode || "A"}
+                number={plateNumber || "1234"}
+                type={plateType}
+                size="lg"
+                label={tp("label", {
+                  emirate: te(plateEmirate),
+                  code: plateCode || "A",
+                  number: plateNumber || "1234",
+                })}
+                className={plateCode && plateNumber ? "" : "opacity-50"}
+              />
+            </div>
+            <Field label={tp("emirate")}>
+              <select
+                className="flex h-9 w-full rounded-lg border px-3 text-sm"
+                value={plateEmirate}
+                onChange={(e) =>
+                  setPlateEmirate(e.target.value as PlateEmirate)
+                }
+              >
+                {PLATE_EMIRATES.map((c) => (
+                  <option key={c} value={c}>
+                    {te(c)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={tp("code")}>
+                <Input
+                  value={plateCode}
+                  onChange={(e) =>
+                    setPlateCode(normalizePlateCode(e.target.value))
+                  }
+                  maxLength={2}
+                  autoCapitalize="characters"
+                  placeholder="A"
+                />
+              </Field>
+              <Field label={tp("number")}>
+                <Input
+                  value={plateNumber}
+                  onChange={(e) =>
+                    setPlateNumber(normalizePlateNumber(e.target.value))
+                  }
+                  inputMode="numeric"
+                  maxLength={5}
+                  placeholder="1234"
+                />
+              </Field>
+            </div>
+            <p className="text-xs text-muted-foreground">{tp("hint")}</p>
+            <Field label={tp("typeLabel")}>
+              <select
+                className="flex h-9 w-full rounded-lg border px-3 text-sm"
+                value={plateType}
+                onChange={(e) => setPlateType(e.target.value as PlateType)}
+              >
+                {PLATE_TYPES.map((v) => (
+                  <option key={v} value={v}>
+                    {tp(`type.${v}`)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
+
+        {step === "specs" && !isPlates && (
           <>
             <Field label={t("make")}>
               <select
@@ -313,7 +503,11 @@ export function ListingWizard() {
               </Field>
             )}
             <Field label={t("year")}>
-              <Input value={year} onChange={(e) => setYear(e.target.value)} type="number" />
+              <Input
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                type="number"
+              />
             </Field>
             {category !== "boats" && (
               <Field label={t("mileage")}>
@@ -371,11 +565,13 @@ export function ListingWizard() {
                   value={motoType}
                   onChange={(e) => setMotoType(e.target.value)}
                 >
-                  {["sport", "cruiser", "touring", "adventure", "scooter"].map((f) => (
-                    <option key={f} value={f}>
-                      {tf(f)}
-                    </option>
-                  ))}
+                  {["sport", "cruiser", "touring", "adventure", "scooter"].map(
+                    (f) => (
+                      <option key={f} value={f}>
+                        {tf(f)}
+                      </option>
+                    ),
+                  )}
                 </select>
               </Field>
             )}
@@ -386,11 +582,13 @@ export function ListingWizard() {
                   value={boatType}
                   onChange={(e) => setBoatType(e.target.value)}
                 >
-                  {["yacht", "fishing", "speedboat", "jetski", "sailboat"].map((f) => (
-                    <option key={f} value={f}>
-                      {tf(f)}
-                    </option>
-                  ))}
+                  {["yacht", "fishing", "speedboat", "jetski", "sailboat"].map(
+                    (f) => (
+                      <option key={f} value={f}>
+                        {tf(f)}
+                      </option>
+                    ),
+                  )}
                 </select>
               </Field>
             )}
@@ -410,7 +608,11 @@ export function ListingWizard() {
         {step === "details" && (
           <>
             <Field label={t("listingTitle")}>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+              />
             </Field>
             <Field label={t("description")}>
               <Textarea
@@ -424,11 +626,29 @@ export function ListingWizard() {
 
         {step === "price" && (
           <>
-            <Field label={t("price")}>
+            {countries.length > 1 && (
+              <Field label={t("country")}>
+                <select
+                  className="flex h-9 w-full rounded-lg border px-3 text-sm"
+                  value={country}
+                  onChange={(e) => applyCountry(e.target.value as GccCode)}
+                >
+                  {countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {locale === "ar" ? c.nameAr : c.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            <Field label={`${t("priceLabel")} (${countryInfo.currency})`}>
               <Input
-                value={priceAed}
-                onChange={(e) => setPriceAed(e.target.value)}
-                type="number"
+                value={priceInput}
+                onChange={(e) =>
+                  setPriceInput(e.target.value.replace(/\D/g, ""))
+                }
+                inputMode="numeric"
+                placeholder="85000"
               />
             </Field>
             <label className="flex items-center gap-2 text-sm">
@@ -439,17 +659,15 @@ export function ListingWizard() {
               />
               {t("negotiable")}
             </label>
-            <Field label={t("emirate")}>
+            <Field label={country === "AE" ? t("emirate") : t("region")}>
               <select
                 className="flex h-9 w-full rounded-lg border px-3 text-sm"
                 value={emirateCode}
-                onChange={(e) =>
-                  setEmirateCode(e.target.value as (typeof EMIRATES)[number])
-                }
+                onChange={(e) => setEmirateCode(e.target.value)}
               >
-                {EMIRATES.map((c) => (
-                  <option key={c} value={c}>
-                    {te(c)}
+                {regions.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {locale === "ar" ? r.nameAr : r.nameEn}
                   </option>
                 ))}
               </select>
@@ -457,23 +675,24 @@ export function ListingWizard() {
             <Field label={t("city")}>
               <select
                 className="flex h-9 w-full rounded-lg border px-3 text-sm"
-                value={cityId}
+                value={effectiveCityId}
                 onChange={(e) => setCityId(e.target.value)}
               >
                 {cities.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.nameEn}
+                    {locale === "ar" ? c.nameAr : c.nameEn}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label={t("phone")}>
-              <Input
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="+9715…"
-              />
-            </Field>
+            <PhoneField
+              id="contactPhone"
+              label={t("phone")}
+              dial={phoneDial}
+              onDialChange={setPhoneDial}
+              value={phoneNational}
+              onValueChange={setPhoneNational}
+            />
           </>
         )}
 
@@ -487,9 +706,16 @@ export function ListingWizard() {
             />
             <div className="grid grid-cols-3 gap-2">
               {images.map((img) => (
-                <div key={img.id} className="aspect-video overflow-hidden rounded border bg-muted">
+                <div
+                  key={img.id}
+                  className="aspect-video overflow-hidden rounded border bg-muted"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={t("photos")} className="size-full object-cover" />
+                  <img
+                    src={img.url}
+                    alt={t("photos")}
+                    className="size-full object-cover"
+                  />
                 </div>
               ))}
             </div>
@@ -510,14 +736,36 @@ export function ListingWizard() {
 
         {(step === "preview" || step === "submit") && (
           <div className="space-y-2 rounded-lg border p-4 text-sm">
+            {isPlates && (
+              <div className="flex justify-center py-2">
+                <PlateBadge
+                  emirate={plateEmirate}
+                  code={plateCode}
+                  number={plateNumber}
+                  type={plateType}
+                  label={tp("label", {
+                    emirate: te(plateEmirate),
+                    code: plateCode,
+                    number: plateNumber,
+                  })}
+                />
+              </div>
+            )}
             <p>
               <strong>{title || "—"}</strong>
             </p>
             <p>
-              {t("price")}: AED {priceAed || "—"}
+              {t("priceLabel")}:{" "}
+              {priceInput
+                ? formatMoney(Number(priceInput), countryInfo.currency, locale)
+                : "—"}
             </p>
             <p>
-              {t("emirate")}: {te(emirateCode)}
+              {country === "AE" ? t("emirate") : t("region")}:{" "}
+              {(() => {
+                const r = regions.find((x) => x.code === emirateCode);
+                return r ? (locale === "ar" ? r.nameAr : r.nameEn) : "—";
+              })()}
             </p>
             <p className="line-clamp-4 text-muted-foreground">{description}</p>
             <p>

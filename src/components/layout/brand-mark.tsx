@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Bumayed monogram: a gold "B" road-curve on a midnight tile. */
+/** BuMayed monogram: a gold "B" road-curve on a midnight tile. */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { startNavigationProgress } from "@/components/layout/navigation-progress";
 import type {
@@ -32,6 +32,8 @@ const MOTO_TYPES = [
   "adventure",
   "scooter",
 ] as const;
+const PLATE_TYPES = ["private", "motorcycle", "classic"] as const;
+const PLATE_DIGITS = ["1", "2", "3", "4", "5"] as const;
 const BOAT_TYPES = [
   "yacht",
   "fishing",
@@ -40,9 +42,13 @@ const BOAT_TYPES = [
   "sailboat",
 ] as const;
 
+/** A region of the browsed country (empty when browsing the whole GCC). */
+export type RegionOption = { code: string; nameEn: string; nameAr: string };
+
 type FilterFormProps = {
   category: VehicleCategoryCode;
   makes: string[];
+  regions?: RegionOption[];
   values: ListingQuery;
   onApplied?: () => void; // closes the mobile drawer
 };
@@ -50,10 +56,13 @@ type FilterFormProps = {
 export function FilterForm({
   category,
   makes,
+  regions = [],
   values,
   onApplied,
 }: FilterFormProps) {
+  const locale = useLocale();
   const t = useTranslations("filters");
+  const tp = useTranslations("plates");
   const te = useTranslations("emirates");
   const router = useRouter();
   const pathname = usePathname();
@@ -75,6 +84,10 @@ export function FilterForm({
     regionalSpec: values.regionalSpec ?? "",
     motoType: values.motoType ?? "",
     boatType: values.boatType ?? "",
+    plateEmirate: values.plateEmirate ?? "",
+    plateType: values.plateType ?? "",
+    plateDigits: values.plateDigits ?? "",
+    plateCode: values.plateCode ?? "",
   });
 
   function set(key: keyof typeof form) {
@@ -88,32 +101,99 @@ export function FilterForm({
       if (value) params.set(key, value);
     }
     if (values.sort !== "newest") params.set("sort", values.sort);
+    keepCountry(params);
     startNavigationProgress();
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
     onApplied?.();
   }
 
+  /** A ?country= in the address (for example "all") is part of what is being browsed. */
+  function keepCountry(params: URLSearchParams) {
+    const country = new URLSearchParams(window.location.search).get("country");
+    if (country) params.set("country", country);
+  }
+
   function reset() {
     startNavigationProgress();
     // Reset clears the filters but keeps the sort order the user picked.
-    const qs = values.sort !== "newest" ? `?sort=${values.sort}` : "";
-    startTransition(() => router.push(`${pathname}${qs}`));
+    const params = new URLSearchParams();
+    if (values.sort !== "newest") params.set("sort", values.sort);
+    keepCountry(params);
+    const qs = params.toString();
+    startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname));
     onApplied?.();
   }
 
-  const hasMileage = category !== "boats";
+  const isPlates = category === "plates";
+  const hasMileage = category === "cars" || category === "motorcycles";
 
   return (
     <form onSubmit={apply} className="flex flex-col gap-4">
       <div className="space-y-1.5">
-        <Label htmlFor="f-keyword">{t("keyword")}</Label>
+        <Label htmlFor="f-keyword">
+          {isPlates ? tp("searchNumber") : t("keyword")}
+        </Label>
         <Input
           id="f-keyword"
           value={form.keyword}
           onChange={(e) => set("keyword")(e.target.value)}
-          placeholder={t("keywordPlaceholder")}
+          placeholder={
+            isPlates ? tp("searchNumberPlaceholder") : t("keywordPlaceholder")
+          }
+          inputMode={isPlates ? "numeric" : undefined}
         />
       </div>
+
+      {isPlates && (
+        <>
+          <FilterSelect
+            id="f-plateEmirate"
+            label={tp("emirate")}
+            value={form.plateEmirate}
+            anyLabel={t("allEmirates")}
+            onChange={set("plateEmirate")}
+            options={EMIRATES.map((c) => ({ value: c, label: te(c) }))}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="f-plateCode">{tp("code")}</Label>
+              <Input
+                id="f-plateCode"
+                value={form.plateCode}
+                maxLength={2}
+                autoCapitalize="characters"
+                onChange={(e) =>
+                  set("plateCode")(
+                    e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                  )
+                }
+              />
+            </div>
+            <FilterSelect
+              id="f-plateDigits"
+              label={tp("digits")}
+              value={form.plateDigits}
+              anyLabel={t("any")}
+              onChange={set("plateDigits")}
+              options={PLATE_DIGITS.map((d) => ({
+                value: d,
+                label: tp("digitsCount", { count: Number(d) }),
+              }))}
+            />
+          </div>
+          <FilterSelect
+            id="f-plateType"
+            label={tp("typeLabel")}
+            value={form.plateType}
+            anyLabel={t("any")}
+            onChange={set("plateType")}
+            options={PLATE_TYPES.map((v) => ({
+              value: v,
+              label: tp(`type.${v}`),
+            }))}
+          />
+        </>
+      )}
 
       {makes.length > 0 && (
         <FilterSelect
@@ -128,7 +208,9 @@ export function FilterForm({
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
-          <Label htmlFor="f-priceMin">{t("priceMin")}</Label>
+          <Label htmlFor="f-priceMin">
+            {t("priceMinLabel")} ({values.currency})
+          </Label>
           <Input
             id="f-priceMin"
             inputMode="numeric"
@@ -137,7 +219,9 @@ export function FilterForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="f-priceMax">{t("priceMax")}</Label>
+          <Label htmlFor="f-priceMax">
+            {t("priceMaxLabel")} ({values.currency})
+          </Label>
           <Input
             id="f-priceMax"
             inputMode="numeric"
@@ -145,24 +229,32 @@ export function FilterForm({
             onChange={(e) => set("priceMax")(e.target.value.replace(/\D/g, ""))}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="f-yearMin">{t("yearMin")}</Label>
-          <Input
-            id="f-yearMin"
-            inputMode="numeric"
-            value={form.yearMin}
-            onChange={(e) => set("yearMin")(e.target.value.replace(/\D/g, ""))}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="f-yearMax">{t("yearMax")}</Label>
-          <Input
-            id="f-yearMax"
-            inputMode="numeric"
-            value={form.yearMax}
-            onChange={(e) => set("yearMax")(e.target.value.replace(/\D/g, ""))}
-          />
-        </div>
+        {!isPlates && (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="f-yearMin">{t("yearMin")}</Label>
+              <Input
+                id="f-yearMin"
+                inputMode="numeric"
+                value={form.yearMin}
+                onChange={(e) =>
+                  set("yearMin")(e.target.value.replace(/\D/g, ""))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="f-yearMax">{t("yearMax")}</Label>
+              <Input
+                id="f-yearMax"
+                inputMode="numeric"
+                value={form.yearMax}
+                onChange={(e) =>
+                  set("yearMax")(e.target.value.replace(/\D/g, ""))
+                }
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {hasMileage && (
@@ -179,26 +271,37 @@ export function FilterForm({
         </div>
       )}
 
-      <FilterSelect
-        id="f-emirate"
-        label={t("emirate")}
-        value={form.emirate}
-        anyLabel={t("allEmirates")}
-        onChange={set("emirate")}
-        options={EMIRATES.map((c) => ({ value: c, label: te(c) }))}
-      />
+      {!isPlates && (
+        <>
+          {regions.length > 0 && (
+            <FilterSelect
+              id="f-emirate"
+              label={values.country === "AE" ? t("emirate") : t("region")}
+              value={form.emirate}
+              anyLabel={
+                values.country === "AE" ? t("allEmirates") : t("allRegions")
+              }
+              onChange={set("emirate")}
+              options={regions.map((r) => ({
+                value: r.code,
+                label: locale === "ar" ? r.nameAr : r.nameEn,
+              }))}
+            />
+          )}
 
-      <FilterSelect
-        id="f-condition"
-        label={t("condition")}
-        value={form.condition}
-        anyLabel={t("any")}
-        onChange={set("condition")}
-        options={[
-          { value: "new", label: t("new") },
-          { value: "used", label: t("used") },
-        ]}
-      />
+          <FilterSelect
+            id="f-condition"
+            label={t("condition")}
+            value={form.condition}
+            anyLabel={t("any")}
+            onChange={set("condition")}
+            options={[
+              { value: "new", label: t("new") },
+              { value: "used", label: t("used") },
+            ]}
+          />
+        </>
+      )}
 
       <FilterSelect
         id="f-sellerType"

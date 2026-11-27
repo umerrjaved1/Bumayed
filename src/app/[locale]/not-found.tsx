@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { ArrowRight, Car, CircleGauge, Home, Ship } from "lucide-react";
+import { ArrowRight, Car, CircleGauge, Hash, Home, Ship } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/shared/search-bar";
@@ -16,6 +16,7 @@ export default function NotFound() {
     { href: "/cars", label: tn("cars"), icon: Car },
     { href: "/motorcycles", label: tn("motorcycles"), icon: CircleGauge },
     { href: "/boats", label: tn("boats"), icon: Ship },
+    { href: "/plates", label: tn("plates"), icon: Hash },
   ];
 
   return (
