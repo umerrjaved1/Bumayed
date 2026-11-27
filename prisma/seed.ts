@@ -917,16 +917,6 @@ const BULK_COUNTS: Record<VehicleCategory, number> = {
   BOATS: 15,
 };
 
-const BULK_PHOTOS: Record<VehicleCategory, string[]> = {
-  CARS: [
-    "nissan-patrol-platinum-2023",
-    "toyota-land-cruiser-gxr-2022",
-    "mercedes-g63-amg-2024",
-  ],
-  MOTORCYCLES: ["harley-fat-boy-114-2021"],
-  BOATS: ["yamaha-waverunner-fx-2022", "gulf-craft-majesty-62-2020"],
-};
-
 const CAR_SPECS = ["GCC", "GCC", "GCC", "AMERICAN", "EUROPEAN", "JAPANESE"] as const;
 const CAR_COLOURS = ["White", "Black", "Silver", "Pearl White", "Grey", "Blue"];
 const MOTO_TYPES = ["sport", "cruiser", "touring", "adventure", "scooter"] as const;
@@ -956,7 +946,6 @@ async function seedBulkListings() {
     const pool = models.filter((m) => m.make.category.code === category);
     if (pool.length === 0) continue;
     const count = BULK_COUNTS[category];
-    const photos = BULK_PHOTOS[category];
 
     for (let i = 0; i < count; i++) {
       const model = pool[i % pool.length]!;
@@ -967,7 +956,6 @@ async function seedBulkListings() {
       const seller = i % 3 === 0 ? individual : dealer;
       const slug = `bulk-${category.toLowerCase()}-${String(i + 1).padStart(2, "0")}`;
       const title = `${model.make.nameEn} ${model.nameEn}${trim ? ` ${trim.nameEn}` : ""} ${year}`;
-      const photo = photos[i % photos.length]!;
       const status =
         i % 15 === 0
           ? ListingStatus.PENDING
@@ -1056,7 +1044,7 @@ async function seedBulkListings() {
           images: {
             create: [
               {
-                objectKey: `seed/${photo}/1.jpg`,
+                objectKey: `seed/${slug}/1.jpg`,
                 sortOrder: 0,
                 isPrimary: true,
                 mime: "image/jpeg",
@@ -1064,6 +1052,11 @@ async function seedBulkListings() {
             ],
           },
         },
+      });
+
+      await prisma.listingImage.updateMany({
+        where: { listingId: listing.id, isPrimary: true },
+        data: { objectKey: `seed/${slug}/1.jpg` },
       });
 
       if (status === ListingStatus.ACTIVE && i % 6 === 1) {
