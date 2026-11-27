@@ -1247,6 +1247,44 @@ const PLATE_SAMPLES: {
   { emirate: "AUH", code: "7", number: "4321", type: "classic", priceAed: 9_800 },
 ];
 
+const PLATE_BULK_COUNT = 27;
+const PLATE_EMIRATE_CODES = ["AUH", "DXB", "SHJ", "AJM", "UAQ", "RAK", "FUJ"] as const;
+const PLATE_BULK_CODES = [
+  "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M",
+  "N", "P", "R", "S", "T", "V", "W", "X", "Y", "Z", "1", "5", "7", "AA", "50",
+];
+const PLATE_BULK_TYPES = ["private", "private", "private", "motorcycle", "classic"] as const;
+
+/** Extra plates so the plates browse page, digit filter, and emirate filter have volume. */
+function buildBulkPlates(): typeof PLATE_SAMPLES {
+  const taken = new Set(PLATE_SAMPLES.map((p) => `${p.emirate}|${p.code}|${p.number}`));
+  const out: typeof PLATE_SAMPLES = [];
+  let i = 0;
+  while (out.length < PLATE_BULK_COUNT && i < 400) {
+    const emirate = PLATE_EMIRATE_CODES[i % PLATE_EMIRATE_CODES.length]!;
+    const code = PLATE_BULK_CODES[i % PLATE_BULK_CODES.length]!;
+    const digits = (i % 5) + 1;
+    const number = String((i * 137 + 17) % 10 ** digits).padStart(digits, "0").replace(/^0+/, "") || "1";
+    const sized = number.length === digits ? number : number.padStart(digits, "1").slice(-digits);
+    const key = `${emirate}|${code}|${sized}`;
+    i += 1;
+    if (taken.has(key) || !/^\d{1,5}$/.test(sized)) continue;
+    taken.add(key);
+    const type = PLATE_BULK_TYPES[out.length % PLATE_BULK_TYPES.length]!;
+    const bases = [1_450_000, 185_000, 42_000, 14_500, 6_400];
+    const steps = [180_000, 12_000, 3_200, 900, 350];
+    out.push({
+      emirate,
+      code,
+      number: sized,
+      type,
+      priceAed: bases[digits - 1]! + (out.length % 6) * steps[digits - 1]!,
+      negotiable: out.length % 3 === 0,
+    });
+  }
+  return out;
+}
+
 /** Sample number-plate ads (no photos: the site draws the plate itself). */
 async function seedPlateListings(catalog: Awaited<ReturnType<typeof seedCatalog>>) {
   const dealer = await prisma.user.findUniqueOrThrow({
@@ -1269,7 +1307,8 @@ async function seedPlateListings(catalog: Awaited<ReturnType<typeof seedCatalog>
     FUJ: "Fujairah",
   };
 
-  for (const [i, p] of PLATE_SAMPLES.entries()) {
+  const plates = [...PLATE_SAMPLES, ...buildBulkPlates()];
+  for (const [i, p] of plates.entries()) {
     const city = cities.find((c) => c.emirate.code === p.emirate);
     if (!city) continue;
     const seller = i % 3 === 0 ? individual : dealer;
@@ -1325,15 +1364,55 @@ async function seedPlateListings(catalog: Awaited<ReturnType<typeof seedCatalog>
       }
     }
   }
-  console.log(`Seeded ${PLATE_SAMPLES.length} number-plate listings.`);
+  console.log(`Seeded ${plates.length} number-plate listings.`);
 }
 
-/** A few DEV SAMPLE ads in the other five countries, priced in local currency. */
+const GCC_BULK_COUNTS = { cars: 12, motorcycles: 6, boats: 4 } as const;
+const GCC_PHOTO_POOL = { cars: 45, motorcycles: 18, boats: 15 } as const;
+const GCC_PHONES: Record<string, string> = {
+  SA: "+966501112233",
+  QA: "+97455112233",
+  KW: "+96550112233",
+  BH: "+97336112233",
+  OM: "+96892112233",
+};
+
+/** Reuse a Creative Commons photo already saved under public/seed-photos. */
+function stockPhotoKey(category: keyof typeof GCC_PHOTO_POOL, index: number) {
+  const n = (index % GCC_PHOTO_POOL[category]) + 1;
+  return `seed/bulk-${category}-${String(n).padStart(2, "0")}/1.jpg`;
+}
+
+async function ensureStockPhoto(listingId: string, objectKey: string) {
+  const existing = await prisma.listingImage.findFirst({
+    where: { listingId, isPrimary: true },
+  });
+  if (!existing) {
+    await prisma.listingImage.create({
+      data: {
+        listingId,
+        objectKey,
+        sortOrder: 0,
+        isPrimary: true,
+        mime: "image/jpeg",
+      },
+    });
+    return;
+  }
+  if (existing.objectKey !== objectKey) {
+    await prisma.listingImage.update({
+      where: { id: existing.id },
+      data: { objectKey, mime: "image/jpeg" },
+    });
+  }
+}
+
+/** DEV SAMPLE ads in the other five countries, one set per vehicle category, with stock photos. */
 async function seedGccListings(catalog: Awaited<ReturnType<typeof seedCatalog>>) {
   const dealer = await prisma.user.findUniqueOrThrow({
     where: { email: "dealer.dev@bumayed.local" },
   });
-  const samples = [
+  const named = [
     { country: "SA", region: "RUH", city: "Riyadh", make: catalog.toyota, title: "Toyota Land Cruiser GXR 2022", price: 215000, phone: "+966501112233", year: 2022, km: 41000 },
     { country: "SA", region: "MKK", city: "Jeddah", make: catalog.nissan, title: "Nissan Patrol Platinum 2023", price: 285000, phone: "+966501112244", year: 2023, km: 18000 },
     { country: "QA", region: "DOH", city: "Doha", make: catalog.toyota, title: "Toyota Land Cruiser VXR 2021", price: 235000, phone: "+97455112233", year: 2021, km: 56000 },
@@ -1342,7 +1421,7 @@ async function seedGccListings(catalog: Awaited<ReturnType<typeof seedCatalog>>)
     { country: "OM", region: "MCT", city: "Muscat", make: catalog.nissan, title: "Nissan Patrol 2021", price: 9800, phone: "+96892112233", year: 2021, km: 61000 },
   ];
 
-  for (const x of samples) {
+  for (const [i, x] of named.entries()) {
     const country = GCC_COUNTRIES.find((c) => c.code === x.country)!;
     const slug = `sample-${x.country.toLowerCase()}-${x.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     const region = await prisma.emirate.findUniqueOrThrow({ where: { code: x.region } });
@@ -1351,7 +1430,8 @@ async function seedGccListings(catalog: Awaited<ReturnType<typeof seedCatalog>>)
     });
     const model = await prisma.vehicleModel.findFirst({ where: { makeId: x.make.id } });
     const priceAed = toAedEquivalent(x.price, country.currency);
-    await prisma.listing.upsert({
+    const photo = stockPhotoKey("cars", i);
+    const listing = await prisma.listing.upsert({
       where: { slug },
       update: { price: x.price, currency: country.currency, priceAed, countryCode: x.country },
       create: {
@@ -1385,13 +1465,126 @@ async function seedGccListings(catalog: Awaited<ReturnType<typeof seedCatalog>>)
         expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
         contactPhone: x.phone,
         contactWhatsapp: x.phone,
-        images: {
-          create: [{ objectKey: `seed/${slug}/1.jpg`, sortOrder: 0, isPrimary: true, mime: "image/jpeg" }],
-        },
       },
     });
+    await ensureStockPhoto(listing.id, photo);
   }
-  console.log(`Seeded ${samples.length} sample ads in the other GCC countries.`);
+
+  const models = await prisma.vehicleModel.findMany({
+    where: { make: { isActive: true } },
+    include: { trims: true, make: { include: { category: true } } },
+    orderBy: [{ make: { slug: "asc" } }, { slug: "asc" }],
+  });
+  const countries = GCC_COUNTRIES.filter((c) => c.code !== "AE");
+  let created = named.length;
+
+  for (const [countryIndex, country] of countries.entries()) {
+    const cities = await prisma.city.findMany({
+      where: { emirate: { country: { code: country.code } } },
+      include: { emirate: true },
+    });
+    if (cities.length === 0) continue;
+    const phone = GCC_PHONES[country.code] ?? dealer.id;
+
+    for (const category of ["cars", "motorcycles", "boats"] as const) {
+      const code =
+        category === "cars"
+          ? VehicleCategory.CARS
+          : category === "motorcycles"
+            ? VehicleCategory.MOTORCYCLES
+            : VehicleCategory.BOATS;
+      const pool = models.filter((m) => m.make.category.code === code);
+      if (pool.length === 0) continue;
+      const count = GCC_BULK_COUNTS[category];
+
+      for (let i = 0; i < count; i++) {
+        const model = pool[i % pool.length]!;
+        const trim = model.trims[i % Math.max(model.trims.length, 1)];
+        const city = cities[(i + countryIndex) % cities.length]!;
+        const year = 2017 + (i % 9);
+        const isNew = i % 8 === 0;
+        const slug = `gcc-${country.code.toLowerCase()}-${category}-${String(i + 1).padStart(2, "0")}`;
+        const title = `${model.make.nameEn} ${model.nameEn}${trim ? ` ${trim.nameEn}` : ""} ${year}`;
+        const priceAed =
+          category === "boats"
+            ? 45000 + i * 120000
+            : category === "motorcycles"
+              ? 14000 + i * 8000
+              : 55000 + ((i * 17 + countryIndex * 5) % 40) * 9000;
+        const price = Math.max(1, Math.round(priceAed / country.aedPerUnit));
+        const specs: Prisma.InputJsonValue =
+          category === "cars"
+            ? {
+                regionalSpec: "GCC",
+                bodyType: /patrol|land-cruiser|g-class|x5|lx/i.test(model.slug) ? "SUV" : "Sedan",
+                transmission: i % 6 === 0 ? "MANUAL" : "AUTOMATIC",
+                fuelType: FUELS[i % FUELS.length],
+                colour: CAR_COLOURS[i % CAR_COLOURS.length],
+                condition: isNew ? "NEW" : "USED",
+                warranty: i % 2 === 0,
+              }
+            : category === "motorcycles"
+              ? {
+                  engineCapacityCc: 300 + (i % 8) * 200,
+                  motorcycleType: MOTO_TYPES[i % MOTO_TYPES.length],
+                  condition: isNew ? "NEW" : "USED",
+                }
+              : {
+                  boatType: BOAT_TYPES[i % BOAT_TYPES.length],
+                  lengthFt: 12 + (i % 10) * 6,
+                  engineHours: isNew ? 0 : 90 + i * 40,
+                  engineType: i % 2 === 0 ? "4-stroke" : "Twin diesel",
+                  condition: isNew ? "NEW" : "USED",
+                };
+        const photo = stockPhotoKey(category, i + countryIndex * 3);
+        const listing = await prisma.listing.upsert({
+          where: { slug },
+          update: {
+            title,
+            price,
+            currency: country.currency,
+            priceAed,
+            countryCode: country.code,
+            year,
+            specs,
+            status: ListingStatus.ACTIVE,
+          },
+          create: {
+            sellerId: dealer.id,
+            categoryId: model.make.categoryId,
+            status: ListingStatus.ACTIVE,
+            title,
+            slug,
+            description: `DEV SAMPLE. ${title} listed in ${city.nameEn}. Priced in ${country.currency}.`,
+            price,
+            currency: country.currency,
+            priceAed,
+            countryCode: country.code,
+            negotiable: i % 3 === 0,
+            makeId: model.makeId,
+            modelId: model.id,
+            trimId: trim?.id,
+            year,
+            mileageKm: category === "boats" ? null : isNew ? 0 : 5000 + i * 2800,
+            emirateId: city.emirateId,
+            cityId: city.id,
+            specs,
+            viewsCount: 8 + i * 5,
+            contactPhone: phone,
+            contactWhatsapp: phone,
+            submittedAt: new Date(Date.now() - i * 7_200_000),
+            approvedAt: new Date(),
+            expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(Date.now() - i * 7_200_000),
+          },
+        });
+        await ensureStockPhoto(listing.id, photo);
+        created += 1;
+      }
+    }
+  }
+
+  console.log(`Seeded ${created} sample ads in the other GCC countries.`);
 }
 
 
