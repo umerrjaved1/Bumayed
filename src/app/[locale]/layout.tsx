@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Arabic, Plus_Jakarta_Sans } from "next/font/google";
+import { Noto_Sans_Arabic, Plus_Jakarta_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { siteUrl } from "@/lib/seo";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -11,26 +11,52 @@ import { SiteTabBar } from "@/components/layout/site-tab-bar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
+import { NavHistoryTracker } from "@/components/layout/nav-history";
+import { FavoritesProvider } from "@/components/shared/favorites-provider";
+import { getSession } from "@/lib/session";
 import "../globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
+// One variable font covers body and headings (all weights in a single file).
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
-  weight: ["500", "600", "700", "800"],
   display: "swap",
 });
 
+// Not preloaded: English pages only download it if Arabic text appears.
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ["arabic"],
   variable: "--font-noto-arabic",
   display: "swap",
+  preload: false,
 });
+
+/**
+ * Translation namespaces that client components read. Server-only copy
+ * (homepage, content pages, SEO, footer…) stays on the server instead of
+ * being shipped to the browser on every page.
+ */
+const CLIENT_NAMESPACES = [
+  "common",
+  "nav",
+  "listing",
+  "emirates",
+  "filters",
+  "sort",
+  "detail",
+  "favorites",
+  "errors",
+  "auth",
+  "tabBar",
+  "dashboard",
+  "wizard",
+  "sellerListings",
+  "dealerDashboard",
+  "admin",
+  "checkout",
+  "packages",
+  "promote",
+] as const;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -72,18 +98,30 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const dir = locale === "ar" ? "rtl" : "ltr";
+  const [allMessages, session] = await Promise.all([
+    getMessages(),
+    getSession(),
+  ]);
+  const clientMessages = Object.fromEntries(
+    CLIENT_NAMESPACES.filter((ns) => ns in allMessages).map((ns) => [
+      ns,
+      allMessages[ns],
+    ]),
+  );
 
   return (
     <html
       lang={locale}
       dir={dir}
-      className={`${inter.variable} ${jakarta.variable} ${notoSansArabic.variable}`}
+      className={`${jakarta.variable} ${notoSansArabic.variable}`}
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col antialiased">
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={clientMessages}>
           <TooltipProvider>
+          <FavoritesProvider signedIn={!!session?.user}>
             <NavigationProgress />
+            <NavHistoryTracker />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-foreground"
@@ -95,6 +133,7 @@ export default async function LocaleLayout({
             <SiteFooter />
             <SiteTabBar />
             <Toaster richColors position="top-center" />
+          </FavoritesProvider>
           </TooltipProvider>
         </NextIntlClientProvider>
       </body>

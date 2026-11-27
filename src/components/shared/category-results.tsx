@@ -2,9 +2,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { buildQueryString, parseListingQuery } from "@/modules/listings/query";
 import {
   getKeywordMatchesElsewhere,
-  getMakesForCategory,
   searchPublicListings,
 } from "@/modules/listings/service";
+import { getCachedMakesForCategory } from "@/modules/listings/cache";
 import { Link } from "@/i18n/navigation";
 import type {
   SearchParamsInput,
@@ -38,11 +38,12 @@ export async function CategoryResults({
   const tc = await getTranslations("categories");
   const tr = await getTranslations("results");
   const tn = await getTranslations("nav");
+  const terr = await getTranslations("errors");
 
   const query = parseListingQuery(searchParams, category);
   const [{ items, total, page, totalPages }, makes] = await Promise.all([
     searchPublicListings(query),
-    getMakesForCategory(category),
+    getCachedMakesForCategory(category),
   ]);
   // Nothing here for this keyword: point to the categories where it does match.
   const elsewhere =
@@ -152,6 +153,8 @@ export async function CategoryResults({
                 body={tr("noResultsBody")}
                 actionLabel={tr("clearFilters")}
                 actionHref={`/${category}`}
+                secondaryLabel={terr("goHome")}
+                secondaryHref="/"
               >
                 {elsewhere.length > 0 && (
                   <ul className="mt-4 flex flex-wrap justify-center gap-2">

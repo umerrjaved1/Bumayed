@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Plus, UserRound } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { auth } from "@/auth";
+import { getSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { HeaderShell } from "@/components/layout/header-shell";
@@ -17,7 +17,7 @@ export async function SiteHeader() {
   const tn = await getTranslations("nav");
   const td = await getTranslations("dashboard");
   const tauth = await getTranslations("auth");
-  const session = await auth();
+  const session = await getSession();
 
   const role = session?.user?.role;
   const accountHref =

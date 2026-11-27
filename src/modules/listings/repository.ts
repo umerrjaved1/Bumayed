@@ -9,6 +9,7 @@ import {
   type VehicleCategoryCode,
 } from "./types";
 import { keywordTerms, termVariants } from "./keyword";
+import { invalidatePublicListings } from "./invalidate";
 
 const publicInclude = {
   category: true,
@@ -134,19 +135,31 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
 
 export async function searchListings(q: ListingQuery) {
   const where = buildSearchWhere(q);
-  const total = await prisma.listing.count({ where });
+  const findPage = (page: number) =>
+    prisma.listing.findMany({
+      where,
+      include: publicInclude,
+      orderBy: sortToOrderBy(q.sort),
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    });
+
+  // Count and fetch in parallel: one database round trip instead of two.
+  const [total, firstTry] = await Promise.all([
+    prisma.listing.count({ where }),
+    findPage(q.page),
+  ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(q.page, totalPages);
-
-  const rows = await prisma.listing.findMany({
-    where,
-    include: publicInclude,
-    orderBy: sortToOrderBy(q.sort),
-    skip: (page - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
-  });
+  // Rare: a page number past the end. Fetch the real last page instead.
+  const rows = page === q.page ? firstTry : await findPage(page);
 
   return { rows, total, page, totalPages };
+}
+
+/** Number of ads matching a query, without loading any of them. */
+export async function countListings(q: ListingQuery) {
+  return prisma.listing.count({ where: buildSearchWhere(q) });
 }
 
 export async function findActiveBySlug(slug: string) {
@@ -272,7 +285,9 @@ export async function updateListingStatus(
   id: string,
   data: Prisma.ListingUpdateInput,
 ) {
-  return prisma.listing.update({ where: { id }, data, include: publicInclude });
+  const result = await prisma.listing.update({ where: { id }, data, include: publicInclude });
+  invalidatePublicListings();
+  return result;
 }
 
 export async function findSellerListings(
@@ -297,7 +312,9 @@ export async function updateListing(
   id: string,
   data: Prisma.ListingUpdateInput,
 ) {
-  return prisma.listing.update({ where: { id }, data, include: publicInclude });
+  const result = await prisma.listing.update({ where: { id }, data, include: publicInclude });
+  invalidatePublicListings();
+  return result;
 }
 
 export async function findCategoryByCode(code: VehicleCategoryCode) {
@@ -349,7 +366,9 @@ export async function addListingImage(data: {
   sortOrder: number;
   isPrimary: boolean;
 }) {
-  return prisma.listingImage.create({ data });
+  const result = await prisma.listingImage.create({ data });
+  invalidatePublicListings();
+  return result;
 }
 
 export async function listListingImages(listingId: string) {
@@ -360,7 +379,9 @@ export async function listListingImages(listingId: string) {
 }
 
 export async function deleteListingImageRow(id: string) {
-  return prisma.listingImage.delete({ where: { id } });
+  const result = await prisma.listingImage.delete({ where: { id } });
+  invalidatePublicListings();
+  return result;
 }
 
 export async function countListingImages(listingId: string) {
@@ -373,7 +394,7 @@ export async function upsertListingVideo(data: {
   originalUrl: string;
   embedUrl: string | null;
 }) {
-  return prisma.listingVideo.upsert({
+  const result = await prisma.listingVideo.upsert({
     where: { listingId: data.listingId },
     create: data,
     update: {
@@ -382,10 +403,14 @@ export async function upsertListingVideo(data: {
       embedUrl: data.embedUrl,
     },
   });
+  invalidatePublicListings();
+  return result;
 }
 
 export async function deleteListingVideo(listingId: string) {
-  return prisma.listingVideo.deleteMany({ where: { listingId } });
+  const result = await prisma.listingVideo.deleteMany({ where: { listingId } });
+  invalidatePublicListings();
+  return result;
 }
 
 export async function addFavorite(userId: string, listingId: string) {
@@ -406,6 +431,15 @@ export async function listFavorites(userId: string) {
     include: { listing: { include: publicInclude } },
     orderBy: { createdAt: "desc" },
   });
+}
+
+/** Just the saved ad ids, for heart icons on listing cards. */
+export async function listFavoriteIds(userId: string) {
+  const rows = await prisma.favorite.findMany({
+    where: { userId },
+    select: { listingId: true },
+  });
+  return rows.map((r) => r.listingId);
 }
 
 export async function isFavorited(userId: string, listingId: string) {

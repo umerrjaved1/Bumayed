@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { Flag } from "lucide-react";
 import { toast } from "sonner";
@@ -29,9 +30,14 @@ const REASONS = ["fraud", "wrongCategory", "duplicate", "prohibited", "other"] a
 export function ReportDialog({
   listingId,
   requireGuestContact = false,
+  triggerClassName,
+  labelClassName,
 }: {
   listingId: string;
   requireGuestContact?: boolean;
+  triggerClassName?: string;
+  /** Lets a tight layout hide the visible label (it stays for screen readers). */
+  labelClassName?: string;
 }) {
   const t = useTranslations("detail");
   const [open, setOpen] = useState(false);
@@ -73,10 +79,16 @@ export function ReportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        render={<Button variant="ghost" size="sm" className="text-muted-foreground" />}
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("text-muted-foreground", triggerClassName)}
+          />
+        }
       >
         <Flag className="size-4" aria-hidden />
-        {t("report")}
+        <span className={labelClassName}>{t("report")}</span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

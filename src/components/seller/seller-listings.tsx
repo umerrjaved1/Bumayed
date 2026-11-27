@@ -6,6 +6,8 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PriceDisplay } from "@/components/shared/price-display";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Megaphone } from "lucide-react";
 import type { ListingPublicDto } from "@/modules/listings/types";
 
 const TABS = [
@@ -21,6 +23,7 @@ const TABS = [
 
 export function SellerListings() {
   const t = useTranslations("sellerListings");
+  const td = useTranslations("dashboard");
   const [tab, setTab] = useState<(typeof TABS)[number]>("ALL");
   const [items, setItems] = useState<ListingPublicDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +153,15 @@ export function SellerListings() {
       </ul>
 
       {!pending && items?.length === 0 && (
-        <p className="mt-8 text-muted-foreground">{t("empty")}</p>
+        <div className="mt-8">
+          <EmptyState
+            icon={Megaphone}
+            title={td("listingsEmptyTitle")}
+            body={td("listingsEmptyBody")}
+            actionLabel={td("postAd")}
+            actionHref="/dashboard/listings/new"
+          />
+        </div>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import { invalidatePublicListings } from "@/modules/listings/invalidate";
 import {
   PaymentPurpose,
   PaymentStatus,
@@ -95,6 +96,7 @@ async function consumeFeaturedSlot(userId: string, listingId: string) {
       data: { featuredSlotsUsed: { increment: 1 } },
     }),
   ]);
+  invalidatePublicListings();
   return promotion;
 }
 
@@ -268,6 +270,10 @@ async function applySignedWebhookInner(rawBody: string, signature: string | null
 
 export async function applySignedWebhook(rawBody: string, signature: string | null) {
   const result = await applySignedWebhookInner(rawBody, signature);
+  if (result.action === "grant" || result.action === "revoke") {
+    // A promotion may have started or ended: refresh the homepage rows.
+    invalidatePublicListings();
+  }
   if (
     result.action === "grant" ||
     result.action === "mark_failed" ||

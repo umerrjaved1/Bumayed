@@ -40,7 +40,9 @@ export default async function FaqPage({
       <Accordion>
         {QA.map((n) => (
           <AccordionItem key={n} value={n}>
-            <AccordionTrigger>{t(`q${n}`)}</AccordionTrigger>
+            <AccordionTrigger className="py-4 text-[0.95rem] font-semibold hover:no-underline">
+              {t(`q${n}`)}
+            </AccordionTrigger>
             <AccordionContent>{t(`a${n}`)}</AccordionContent>
           </AccordionItem>
         ))}

@@ -1,70 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { Heart } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { useFavorites } from "@/components/shared/favorites-provider";
 
+/** Save / Saved button on the ad page; shares state with the card hearts. */
 export function FavoriteButton({
   listingId,
   initial = false,
+  className,
 }: {
   listingId: string;
   initial?: boolean;
+  className?: string;
 }) {
   const t = useTranslations("favorites");
-  const router = useRouter();
-  const [on, setOn] = useState(initial);
-  const [pending, setPending] = useState(false);
+  const favorites = useFavorites();
 
-  // Send guests to log in, then bring them back to this ad.
-  function goToLogin() {
-    const back = window.location.pathname + window.location.search;
-    router.push(`/auth/login?callbackUrl=${encodeURIComponent(back)}`);
-  }
+  useEffect(() => {
+    favorites?.seed(listingId, initial);
+    // Seed once with what the server rendered.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingId, initial]);
 
-  async function toggle() {
-    setPending(true);
-    try {
-      if (on) {
-        const res = await fetch(
-          `/api/favorites?listingId=${encodeURIComponent(listingId)}`,
-          { method: "DELETE" },
-        );
-        if (res.status === 401) {
-          goToLogin();
-          return;
-        }
-        if (res.ok) setOn(false);
-      } else {
-        const res = await fetch("/api/favorites", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ listingId }),
-        });
-        if (res.status === 401) {
-          goToLogin();
-          return;
-        }
-        if (res.ok) setOn(true);
-      }
-    } finally {
-      setPending(false);
-    }
-  }
+  const on = favorites ? favorites.isSaved(listingId) : initial;
+  const pending = favorites?.pending(listingId) ?? false;
 
   return (
     <Button
       variant="outline"
       size="sm"
+      className={className}
       disabled={pending}
-      onClick={toggle}
+      onClick={() => void favorites?.toggle(listingId)}
       aria-pressed={on}
       aria-label={on ? t("remove") : t("add")}
     >
       <Heart
-        className={on ? "size-4 fill-current text-destructive" : "size-4"}
+        key={on ? "on" : "off"}
+        className={
+          on
+            ? "size-4 animate-in fill-current text-destructive zoom-in-50 duration-300"
+            : "size-4"
+        }
       />
       {on ? t("saved") : t("save")}
     </Button>

@@ -1,3 +1,4 @@
+import { invalidatePublicListings } from "@/modules/listings/invalidate";
 import {
   ListingStatus,
   PromotionType,
@@ -206,6 +207,7 @@ export async function moderateListing(
     type,
     days,
   });
+  invalidatePublicListings();
   await writeAuditLog({
     actorId: actor.id,
     action: "listing.feature",

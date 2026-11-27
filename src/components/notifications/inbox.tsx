@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Inbox({
@@ -14,6 +16,7 @@ export function Inbox({
     createdAt: string;
   }>;
 }) {
+  const t = useTranslations("dashboard");
   const [rows, setRows] = useState(items);
 
   async function mark(id: string) {
@@ -27,7 +30,16 @@ export function Inbox({
   }
 
   if (rows.length === 0) {
-    return <p className="text-muted-foreground">No notifications yet.</p>;
+    return (
+      <div className="flex flex-col items-center rounded-3xl border border-dashed px-6 py-12 text-center">
+        <span className="grid size-14 place-items-center rounded-2xl bg-primary/[0.07] text-primary">
+          <BellOff className="size-6" aria-hidden />
+        </span>
+        <p className="mt-4 max-w-sm text-sm text-muted-foreground">
+          {t("notificationsEmpty")}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -40,7 +52,7 @@ export function Inbox({
             </p>
             {!n.read ? (
               <Button size="sm" variant="ghost" onClick={() => void mark(n.id)}>
-                Mark read
+                {t("markRead")}
               </Button>
             ) : null}
           </div>

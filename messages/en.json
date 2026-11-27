@@ -11,7 +11,10 @@
     "viewAll": "View all",
     "loading": "Loading…",
     "error": "Something went wrong. Please try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "popularSearches": "Popular",
+    "recentSearches": "Recent",
+    "clear": "Clear"
   },
   "nav": {
     "home": "Home",
@@ -59,7 +62,9 @@
     "trustModerated": "Every ad moderated",
     "trustDealers": "Verified dealers",
     "trustBilingual": "English & Arabic",
-    "ctaEyebrow": "For dealers"
+    "ctaEyebrow": "For dealers",
+    "recentTitle": "Recently viewed",
+    "recentSubtitle": "Pick up where you left off."
   },
   "categories": {
     "cars": "Cars",
@@ -214,7 +219,13 @@
     "nextPhoto": "Next photo",
     "closePhoto": "Close photo viewer",
     "whatsappMessage": "Hi, I'm interested in your {title} on Bumayed: {url}",
-    "shareManual": "Copy this link to share the ad"
+    "shareManual": "Copy this link to share the ad",
+    "readMore": "Read more",
+    "showLess": "Show less",
+    "sellerTitle": "About the seller",
+    "keyFacts": "Key facts",
+    "backToResults": "Back",
+    "breadcrumb": "Breadcrumb"
   },
   "content": {
     "draftNotice": "Draft content — pending client approval before launch.",
@@ -278,7 +289,12 @@
     "notFoundBody": "The page you are looking for does not exist or has been moved.",
     "backHome": "Back to homepage",
     "errorTitle": "Something went wrong",
-    "errorBody": "An unexpected error occurred. Please try again."
+    "errorBody": "An unexpected error occurred. Please try again.",
+    "notFoundHint": "The ad may have been sold or removed. Try one of these instead:",
+    "searchInstead": "Search instead",
+    "errorHint": "If it keeps happening, our team can help.",
+    "contactUs": "Contact us",
+    "goHome": "Go to homepage"
   },
   "meta": {
     "homeTitle": "Bumayed — UAE Motors Marketplace",
@@ -350,7 +366,11 @@
     "postAd": "Post an Ad",
     "dealerNav": "Dealer dashboard",
     "adminNav": "Admin panel",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "notificationsEmpty": "No notifications yet. We will let you know when something happens with your ads.",
+    "listingsEmptyTitle": "You have no ads yet",
+    "listingsEmptyBody": "Post your first ad in a few minutes — it is free to list.",
+    "markRead": "Mark read"
   },
   "admin": {
     "eyebrow": "Bumayed ops",
@@ -610,7 +630,14 @@
     "save": "Save",
     "saved": "Saved",
     "add": "Add to favorites",
-    "remove": "Remove from favorites"
+    "remove": "Remove from favorites",
+    "savedToast": "Saved to your favorites",
+    "removedToast": "Removed from favorites",
+    "view": "View",
+    "emptyTitle": "No saved ads yet",
+    "emptyBody": "Tap the heart on any ad to keep it here and compare later.",
+    "browse": "Browse cars",
+    "signInToSave": "Sign in to save ads"
   },
   "tabBar": {
     "home": "Home",

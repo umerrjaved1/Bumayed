@@ -1,3 +1,4 @@
+import { invalidatePublicListings } from "@/modules/listings/invalidate";
 import { ListingStatus, NotificationType, PromotionStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertTransition } from "@/modules/listings/lifecycle";
@@ -93,6 +94,7 @@ export async function sweepExpiryNotifications(now = new Date()) {
       where: { id: row.id },
       data: { status: ListingStatus.EXPIRED },
     });
+    invalidatePublicListings();
     await notifyListingEvent({
       sellerId: row.sellerId,
       listingId: row.id,

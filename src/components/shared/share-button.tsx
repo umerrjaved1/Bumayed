@@ -5,7 +5,13 @@ import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-export function ShareButton({ title }: { title: string }) {
+export function ShareButton({
+  title,
+  className,
+}: {
+  title: string;
+  className?: string;
+}) {
   const t = useTranslations("detail");
 
   async function onShare() {
@@ -28,7 +34,7 @@ export function ShareButton({ title }: { title: string }) {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={onShare}>
+    <Button variant="outline" size="sm" className={className} onClick={onShare}>
       <Share2 className="size-4" aria-hidden />
       {t("share")}
     </Button>

@@ -5,9 +5,13 @@ import * as repo from "@/modules/listings/repository";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await requireSessionUser();
+    // `?ids=1`: only the saved ad ids (cheap; used for heart icons on cards).
+    if (new URL(request.url).searchParams.get("ids") === "1") {
+      return NextResponse.json({ ids: await repo.listFavoriteIds(user.id) });
+    }
     const rows = await repo.listFavorites(user.id);
     return NextResponse.json({
       items: rows.map((r) => toPublicDto(r.listing)),

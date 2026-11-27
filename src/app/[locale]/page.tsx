@@ -21,14 +21,9 @@ import { Spotlight } from "@/components/motion/spotlight";
 import { CountUp } from "@/components/motion/count-up";
 import { Rail } from "@/components/motion/rail";
 import { railItem } from "@/components/motion/rail-item";
-import { auth } from "@/auth";
-import {
-  getFeaturedListings,
-  getLatestListings,
-  getMakesWithListings,
-  searchPublicListings,
-} from "@/modules/listings/service";
-import { parseListingQuery } from "@/modules/listings/query";
+import { getSession } from "@/lib/session";
+import { getHomeData } from "@/modules/listings/cache";
+import { RecentlyViewedRail } from "@/components/shared/recently-viewed";
 import { Link } from "@/i18n/navigation";
 
 export const dynamic = "force-dynamic";
@@ -40,11 +35,6 @@ const CATEGORY_IMAGES = {
 } as const;
 
 const HERO_IMAGE = "/seed-photos/toyota-land-cruiser-gxr-2022.jpg";
-
-async function countLive(category: "cars" | "motorcycles" | "boats") {
-  const { total } = await searchPublicListings(parseListingQuery({}, category));
-  return total;
-}
 
 function SectionHeading({
   title,
@@ -70,7 +60,7 @@ function SectionHeading({
       {action && (
         <Link
           href={action.href}
-          className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-all hover:border-accent hover:bg-accent/10 active:scale-95 sm:gap-2 sm:px-4"
+          className="group inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-all hover:border-accent hover:bg-accent/10 active:scale-95 sm:gap-2 sm:px-4"
         >
           {action.label}
           <ArrowRight
@@ -92,21 +82,12 @@ export default async function HomePage({
   setRequestLocale(locale);
   const t = await getTranslations("home");
   const tc = await getTranslations("categories");
+  const tcommon = await getTranslations("common");
 
-  const [featured, recent, popularMakes, session, carCount, motoCount, boatCount] =
-    await Promise.all([
-      getFeaturedListings(6),
-      getLatestListings(12),
-      // Only makes with live ads, so no chip leads to an empty results page.
-      getMakesWithListings("cars"),
-      auth(),
-      countLive("cars"),
-      countLive("motorcycles"),
-      countLive("boats"),
-    ]);
-  // Featured ads already have their own row; don't show them twice.
-  const featuredSlugs = new Set(featured.map((l) => l.slug));
-  const latest = recent.filter((l) => !featuredSlugs.has(l.slug)).slice(0, 6);
+  // Public rows and counts come from a short-lived shared cache (see cache.ts).
+  const [{ featured, latest, popularMakes, counts }, session] =
+    await Promise.all([getHomeData(), getSession()]);
+  const { cars: carCount, motorcycles: motoCount, boats: boatCount } = counts;
   const totalLive = carCount + motoCount + boatCount;
 
   // Dealers go straight to packages; everyone else signs up as a dealer first.
@@ -193,7 +174,7 @@ export default async function HomePage({
             className="animate-fade-up mt-10 max-w-4xl"
             style={{ animationDelay: "240ms" }}
           >
-            <SearchBar />
+            <SearchBar popular={popularMakes} />
           </div>
 
           <ul
@@ -224,6 +205,13 @@ export default async function HomePage({
           </dl>
         </div>
       </section>
+
+      {/* ---------------- Recently viewed (only for returning visitors) ---------------- */}
+      <RecentlyViewedRail
+        title={t("recentTitle")}
+        subtitle={t("recentSubtitle")}
+        clearLabel={tcommon("clear")}
+      />
 
       {/* ---------------- Categories (bento) ---------------- */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
