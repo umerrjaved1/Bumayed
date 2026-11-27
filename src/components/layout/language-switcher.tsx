@@ -2,68 +2,60 @@
 
 import { useTransition } from "react";
 import { useLocale } from "next-intl";
-import { Languages } from "lucide-react";
+import { Languages, Loader2 } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { routing, type Locale } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 
-const LOCALE_LABELS: Record<string, string> = {
-  en: "English",
-  ar: "العربية",
+/** Each button shows the language you would switch TO, written in that language. */
+const TARGET_LABELS: Record<Locale, { label: string; aria: string }> = {
+  en: { label: "English", aria: "Switch to English" },
+  ar: { label: "العربية", aria: "التبديل إلى العربية" },
 };
 
+/** One-tap switch between the two languages (English ⇄ Arabic). */
 export function LanguageSwitcher() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const target = routing.locales.find((l) => l !== locale) ?? "en";
+  const { label, aria } = TARGET_LABELS[target];
+
+  function onSwitch() {
+    startTransition(() =>
+      // Keep filters, sort and page when switching language.
+      router.replace(
+        {
+          pathname,
+          // Read at click time; useSearchParams would stop pages from prerendering.
+          query: Object.fromEntries(
+            new URLSearchParams(window.location.search),
+          ),
+        },
+        { locale: target },
+      ),
+    );
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-10 rounded-full md:size-9"
-            aria-label="Change language"
-            disabled={isPending}
-          />
-        }
-      >
-        <Languages className="size-5" aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {routing.locales.map((l) => (
-          <DropdownMenuItem
-            key={l}
-            disabled={l === locale}
-            onClick={() =>
-              startTransition(() =>
-                // Keep filters, sort and page when switching language.
-                router.replace(
-                  {
-                    pathname,
-                    // Read at click time; useSearchParams would stop pages from prerendering.
-                    query: Object.fromEntries(
-                      new URLSearchParams(window.location.search),
-                    ),
-                  },
-                  { locale: l },
-                ),
-              )
-            }
-          >
-            {LOCALE_LABELS[l]}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      type="button"
+      onClick={onSwitch}
+      disabled={isPending}
+      aria-label={aria}
+      lang={target}
+      className={cn(
+        "inline-flex h-10 items-center gap-1.5 rounded-full border bg-background/60 px-3.5 text-sm font-semibold transition-all hover:border-accent hover:bg-accent/10 active:scale-95 disabled:opacity-60 md:h-9",
+      )}
+    >
+      {isPending ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : (
+        <Languages className="size-4 text-accent" aria-hidden />
+      )}
+      {label}
+    </button>
   );
 }
