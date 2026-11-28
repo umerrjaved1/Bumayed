@@ -60,12 +60,12 @@ function upper(v: string | undefined): string | undefined {
 function keywordWhere(keyword: string): Prisma.ListingWhereInput[] {
   return keywordTerms(keyword).map((term) => ({
     OR: termVariants(term).flatMap((v) => [
-      { title: { contains: v, mode: "insensitive" as const } },
-      { description: { contains: v, mode: "insensitive" as const } },
-      { make: { nameEn: { contains: v, mode: "insensitive" as const } } },
-      { make: { nameAr: { contains: v, mode: "insensitive" as const } } },
-      { model: { nameEn: { contains: v, mode: "insensitive" as const } } },
-      { model: { nameAr: { contains: v, mode: "insensitive" as const } } },
+      { title: { contains: v } },
+      { description: { contains: v } },
+      { make: { nameEn: { contains: v } } },
+      { make: { nameAr: { contains: v } } },
+      { model: { nameEn: { contains: v } } },
+      { model: { nameAr: { contains: v } } },
     ]),
   }));
 }
@@ -79,7 +79,7 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
 
   if (q.keyword) and.push(...keywordWhere(q.keyword));
   if (q.make) {
-    and.push({ make: { nameEn: { equals: q.make, mode: "insensitive" } } });
+    and.push({ make: { nameEn: { equals: q.make } } });
   }
   if (q.priceMin != null) and.push({ priceAed: { gte: q.priceMin } });
   if (q.priceMax != null) and.push({ priceAed: { lte: q.priceMax } });
@@ -98,34 +98,34 @@ export function buildSearchWhere(q: ListingQuery): Prisma.ListingWhereInput {
     // Older wizard ads stored condition in lowercase, so match both.
     and.push({
       OR: [
-        { specs: { path: ["condition"], equals: upper(q.condition) } },
-        { specs: { path: ["condition"], equals: q.condition.toLowerCase() } },
+        { specs: { path: "$.condition", equals: upper(q.condition) } },
+        { specs: { path: "$.condition", equals: q.condition.toLowerCase() } },
       ],
     });
   }
   if (q.transmission) {
     and.push({
-      specs: { path: ["transmission"], equals: upper(q.transmission) },
+      specs: { path: "$.transmission", equals: upper(q.transmission) },
     });
   }
   if (q.fuelType) {
     and.push({
-      specs: { path: ["fuelType"], equals: upper(q.fuelType) },
+      specs: { path: "$.fuelType", equals: upper(q.fuelType) },
     });
   }
   if (q.regionalSpec) {
     and.push({
-      specs: { path: ["regionalSpec"], equals: upper(q.regionalSpec) },
+      specs: { path: "$.regionalSpec", equals: upper(q.regionalSpec) },
     });
   }
   if (q.motoType) {
     and.push({
-      specs: { path: ["motorcycleType"], equals: q.motoType.toLowerCase() },
+      specs: { path: "$.motorcycleType", equals: q.motoType.toLowerCase() },
     });
   }
   if (q.boatType) {
     and.push({
-      specs: { path: ["boatType"], equals: q.boatType.toLowerCase() },
+      specs: { path: "$.boatType", equals: q.boatType.toLowerCase() },
     });
   }
 

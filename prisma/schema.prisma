@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   // Connection URL lives in prisma.config.ts (Prisma 7)
 }
 
@@ -145,7 +145,7 @@ enum ContentStatus {
 // ─── Identity & accounts ─────────────────────────────────────────────────────
 
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
+  id               String     @id @default(uuid()) @db.VarChar(36)
   email            String?    @unique // citext semantics enforced by app-level lowercase
   phone            String?    @unique @db.VarChar(20) // E.164
   passwordHash     String?
@@ -176,14 +176,14 @@ model User {
 }
 
 model UserProfile {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @db.Uuid
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  userId          String   @unique @db.VarChar(36)
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   displayName     String
   photoKey        String? // object-storage key, never a binary
-  emirateId       String?  @db.Uuid
+  emirateId       String?  @db.VarChar(36)
   emirate         Emirate? @relation(fields: [emirateId], references: [id])
-  cityId          String?  @db.Uuid
+  cityId          String?  @db.VarChar(36)
   city            City?    @relation(fields: [cityId], references: [id])
   whatsappNumber  String?  @db.VarChar(20)
   showPhone       Boolean  @default(true)
@@ -195,8 +195,8 @@ model UserProfile {
 }
 
 model DealerProfile {
-  id                 String                    @id @default(uuid()) @db.Uuid
-  userId             String                    @unique @db.Uuid
+  id                 String                    @id @default(uuid()) @db.VarChar(36)
+  userId             String                    @unique @db.VarChar(36)
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessName       String
   slug               String                    @unique
@@ -204,9 +204,9 @@ model DealerProfile {
   businessPhone      String                    @db.VarChar(20)
   businessEmail      String?
   whatsappNumber     String?                   @db.VarChar(20)
-  emirateId          String?                   @db.Uuid
+  emirateId          String?                   @db.VarChar(36)
   emirate            Emirate?                  @relation(fields: [emirateId], references: [id])
-  cityId             String?                   @db.Uuid
+  cityId             String?                   @db.VarChar(36)
   city               City?                     @relation(fields: [cityId], references: [id])
   address            String?
   description        String?
@@ -223,13 +223,13 @@ model DealerProfile {
 }
 
 model VerificationDocument {
-  id           String    @id @default(uuid()) @db.Uuid
-  dealerId     String    @db.Uuid
+  id           String    @id @default(uuid()) @db.VarChar(36)
+  dealerId     String    @db.VarChar(36)
   dealer       DealerProfile @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   documentType String // trade_license, emirates_id, … (list TBC by client)
   fileKey      String
   status       DealerVerificationStatus @default(PENDING)
-  reviewedById String?   @db.Uuid
+  reviewedById String?   @db.VarChar(36)
   reviewedBy   User?     @relation(fields: [reviewedById], references: [id])
   reviewedAt   DateTime?
   note         String?
@@ -242,7 +242,7 @@ model VerificationDocument {
 
 // Email verification + password reset (hashed, single-use, expiring)
 model VerificationToken {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(uuid()) @db.VarChar(36)
   identifier String // email address
   tokenHash  String
   purpose    String // EMAIL_VERIFICATION | PASSWORD_RESET
@@ -257,8 +257,8 @@ model VerificationToken {
 
 // Scaffolded for mobile OTP — feature-flagged OFF (owner decision)
 model OtpCode {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String?   @db.Uuid
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  userId      String?   @db.VarChar(36)
   user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   phone       String    @db.VarChar(20)
   codeHash    String // never plaintext
@@ -275,7 +275,7 @@ model OtpCode {
 // ─── Catalog ─────────────────────────────────────────────────────────────────
 
 model Category {
-  id        String          @id @default(uuid()) @db.Uuid
+  id        String          @id @default(uuid()) @db.VarChar(36)
   code      VehicleCategory @unique
   nameEn    String
   nameAr    String
@@ -295,8 +295,8 @@ model Category {
 
 // Admin-configurable per-category attributes (playbook §9.2)
 model CategoryField {
-  id          String    @id @default(uuid()) @db.Uuid
-  categoryId  String    @db.Uuid
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  categoryId  String    @db.VarChar(36)
   category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   key         String // mileage, engineCapacityCc, boatLengthFt, …
   labelEn     String
@@ -314,8 +314,8 @@ model CategoryField {
 }
 
 model VehicleMake {
-  id         String   @id @default(uuid()) @db.Uuid
-  categoryId String   @db.Uuid
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  categoryId String   @db.VarChar(36)
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   nameEn     String
   nameAr     String?
@@ -333,8 +333,8 @@ model VehicleMake {
 }
 
 model VehicleModel {
-  id        String      @id @default(uuid()) @db.Uuid
-  makeId    String      @db.Uuid
+  id        String      @id @default(uuid()) @db.VarChar(36)
+  makeId    String      @db.VarChar(36)
   make      VehicleMake @relation(fields: [makeId], references: [id], onDelete: Cascade)
   nameEn    String
   nameAr    String?
@@ -350,8 +350,8 @@ model VehicleModel {
 }
 
 model VehicleTrim {
-  id        String       @id @default(uuid()) @db.Uuid
-  modelId   String       @db.Uuid
+  id        String       @id @default(uuid()) @db.VarChar(36)
+  modelId   String       @db.VarChar(36)
   model     VehicleModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
   nameEn    String
   nameAr    String?
@@ -367,7 +367,7 @@ model VehicleTrim {
 // ─── Locations ───────────────────────────────────────────────────────────────
 
 model Emirate {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.VarChar(36)
   code      String   @unique @db.VarChar(3) // AUH, DXB, SHJ, AJM, UAQ, RAK, FUJ
   nameEn    String
   nameAr    String
@@ -383,8 +383,8 @@ model Emirate {
 }
 
 model City {
-  id        String   @id @default(uuid()) @db.Uuid
-  emirateId String   @db.Uuid
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  emirateId String   @db.VarChar(36)
   emirate   Emirate  @relation(fields: [emirateId], references: [id], onDelete: Cascade)
   nameEn    String
   nameAr    String
@@ -401,8 +401,8 @@ model City {
 }
 
 model Area {
-  id        String   @id @default(uuid()) @db.Uuid
-  cityId    String   @db.Uuid
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  cityId    String   @db.VarChar(36)
   city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
   nameEn    String
   nameAr    String
@@ -418,10 +418,10 @@ model Area {
 // ─── Listings ────────────────────────────────────────────────────────────────
 
 model Listing {
-  id           String          @id @default(uuid()) @db.Uuid
-  sellerId     String          @db.Uuid
+  id           String          @id @default(uuid()) @db.VarChar(36)
+  sellerId     String          @db.VarChar(36)
   seller       User            @relation(fields: [sellerId], references: [id])
-  categoryId   String          @db.Uuid
+  categoryId   String          @db.VarChar(36)
   category     Category        @relation(fields: [categoryId], references: [id])
   status       ListingStatus   @default(DRAFT)
   title        String          @db.VarChar(120)
@@ -429,19 +429,19 @@ model Listing {
   description  String
   priceAed     Int // AED, no decimals
   negotiable   Boolean         @default(false)
-  makeId       String?         @db.Uuid
+  makeId       String?         @db.VarChar(36)
   make         VehicleMake?    @relation(fields: [makeId], references: [id])
-  modelId      String?         @db.Uuid
+  modelId      String?         @db.VarChar(36)
   model        VehicleModel?   @relation(fields: [modelId], references: [id])
-  trimId       String?         @db.Uuid
+  trimId       String?         @db.VarChar(36)
   trim         VehicleTrim?    @relation(fields: [trimId], references: [id])
   year         Int?
   mileageKm    Int?
-  emirateId    String          @db.Uuid
+  emirateId    String          @db.VarChar(36)
   emirate      Emirate         @relation(fields: [emirateId], references: [id])
-  cityId       String          @db.Uuid
+  cityId       String          @db.VarChar(36)
   city         City            @relation(fields: [cityId], references: [id])
-  areaId       String?         @db.Uuid
+  areaId       String?         @db.VarChar(36)
   area         Area?           @relation(fields: [areaId], references: [id])
   // Values keyed by CategoryField.key — Zod-validated per category (never a dump)
   specs        Json            @default("{}")
@@ -474,8 +474,8 @@ model Listing {
 }
 
 model ListingImage {
-  id        String   @id @default(uuid()) @db.Uuid
-  listingId String   @db.Uuid
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  listingId String   @db.VarChar(36)
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   objectKey String
   thumbKey  String?
@@ -493,8 +493,8 @@ model ListingImage {
 }
 
 model ListingVideo {
-  id          String        @id @default(uuid()) @db.Uuid
-  listingId   String        @unique @db.Uuid // one video per listing (§9.4)
+  id          String        @id @default(uuid()) @db.VarChar(36)
+  listingId   String        @unique @db.VarChar(36) // one video per listing (§9.4)
   listing     Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
   provider    VideoProvider
   originalUrl String
@@ -506,10 +506,10 @@ model ListingVideo {
 }
 
 model Favorite {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listingId String   @db.Uuid
+  listingId String   @db.VarChar(36)
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -522,7 +522,7 @@ model Favorite {
 
 // Prices/durations in DB, never hardcoded (values DRAFT until client confirms)
 model PromotionPrice {
-  id           String        @id @default(uuid()) @db.Uuid
+  id           String        @id @default(uuid()) @db.VarChar(36)
   type         PromotionType @unique
   priceAed     Int
   durationDays Int
@@ -534,14 +534,14 @@ model PromotionPrice {
 }
 
 model FeaturedPromotion {
-  id        String          @id @default(uuid()) @db.Uuid
-  listingId String          @db.Uuid
+  id        String          @id @default(uuid()) @db.VarChar(36)
+  listingId String          @db.VarChar(36)
   listing   Listing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
   type      PromotionType
   status    PromotionStatus @default(ACTIVE)
   startsAt  DateTime        @default(now())
   endsAt    DateTime
-  paymentId String?         @db.Uuid
+  paymentId String?         @db.VarChar(36)
   payment   Payment?        @relation(fields: [paymentId], references: [id])
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
@@ -551,7 +551,7 @@ model FeaturedPromotion {
 }
 
 model Package {
-  id                  String   @id @default(uuid()) @db.Uuid
+  id                  String   @id @default(uuid()) @db.VarChar(36)
   name                String
   nameAr              String?
   priceAed            Int
@@ -569,17 +569,17 @@ model Package {
 }
 
 model Subscription {
-  id                     String   @id @default(uuid()) @db.Uuid
-  dealerId               String   @db.Uuid
+  id                     String   @id @default(uuid()) @db.VarChar(36)
+  dealerId               String   @db.VarChar(36)
   dealer                 User     @relation(fields: [dealerId], references: [id])
-  packageId              String   @db.Uuid
+  packageId              String   @db.VarChar(36)
   package                Package  @relation(fields: [packageId], references: [id])
   startsAt               DateTime @default(now())
   endsAt                 DateTime
   status                 PromotionStatus @default(ACTIVE)
   listingsUsedThisPeriod Int      @default(0)
   featuredSlotsUsed      Int      @default(0)
-  paymentId              String?  @db.Uuid
+  paymentId              String?  @db.VarChar(36)
   payment                Payment? @relation(fields: [paymentId], references: [id])
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
@@ -589,8 +589,8 @@ model Subscription {
 }
 
 model Payment {
-  id             String         @id @default(uuid()) @db.Uuid
-  userId         String         @db.Uuid
+  id             String         @id @default(uuid()) @db.VarChar(36)
+  userId         String         @db.VarChar(36)
   user           User           @relation(fields: [userId], references: [id])
   purpose        PaymentPurpose
   amountAed      Int
@@ -613,8 +613,8 @@ model Payment {
 
 // Append-only provider events — providerEventId unique = idempotent webhooks
 model Transaction {
-  id              String   @id @default(uuid()) @db.Uuid
-  paymentId       String   @db.Uuid
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  paymentId       String   @db.VarChar(36)
   payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   providerEventId String   @unique
   eventType       String
@@ -627,8 +627,8 @@ model Transaction {
 // ─── Notifications, reports, content ─────────────────────────────────────────
 
 model Notification {
-  id        String              @id @default(uuid()) @db.Uuid
-  userId    String              @db.Uuid
+  id        String              @id @default(uuid()) @db.VarChar(36)
+  userId    String              @db.VarChar(36)
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel   NotificationChannel
   type      NotificationType
@@ -646,8 +646,8 @@ model Notification {
 }
 
 model NotificationPreference {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @unique @db.Uuid
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @unique @db.VarChar(36)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   toggles   Json     @default("{}") // per-type channel preferences; default all on
   createdAt DateTime @default(now())
@@ -657,16 +657,16 @@ model NotificationPreference {
 }
 
 model Report {
-  id           String       @id @default(uuid()) @db.Uuid
-  listingId    String       @db.Uuid
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  listingId    String       @db.VarChar(36)
   listing      Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  reporterId   String?      @db.Uuid // nullable → guest reports with contact
+  reporterId   String?      @db.VarChar(36) // nullable → guest reports with contact
   reporter     User?        @relation("ReportReporter", fields: [reporterId], references: [id])
   guestContact String?
   reason       String
   details      String?
   status       ReportStatus @default(OPEN)
-  resolvedById String?      @db.Uuid
+  resolvedById String?      @db.VarChar(36)
   resolvedBy   User?        @relation("ReportResolver", fields: [resolvedById], references: [id])
   resolution   String?
   createdAt    DateTime     @default(now())
@@ -677,7 +677,7 @@ model Report {
 }
 
 model Banner {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(uuid()) @db.VarChar(36)
   titleEn   String
   titleAr   String?
   imageKey  String
@@ -694,7 +694,7 @@ model Banner {
 }
 
 model ContentPage {
-  id          String        @id @default(uuid()) @db.Uuid
+  id          String        @id @default(uuid()) @db.VarChar(36)
   slug        String        @unique // about, faq, terms, privacy, contact
   titleEn     String
   titleAr     String
@@ -711,7 +711,7 @@ model ContentPage {
 // ─── Auth rate limiting (login / register / reset / OTP) ─────────────────────
 
 model AuthRateLimit {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid()) @db.VarChar(36)
   bucket      String   @unique // e.g. "login:ip:1.2.3.4"
   count       Int      @default(0)
   windowStart DateTime @default(now())
@@ -723,8 +723,8 @@ model AuthRateLimit {
 // ─── Administration ──────────────────────────────────────────────────────────
 
 model AdminActivityLog {
-  id         String   @id @default(uuid()) @db.Uuid
-  actorId    String   @db.Uuid
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  actorId    String   @db.VarChar(36)
   actor      User     @relation(fields: [actorId], references: [id])
   action     String
   targetType String

@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { UserAccountMenu } from "@/components/layout/user-account-menu";
 import { HeaderShell } from "@/components/layout/header-shell";
 import { NavLink } from "@/components/layout/nav-link";
 import { BrandMark } from "@/components/layout/brand-mark";
@@ -91,16 +92,18 @@ export async function SiteHeader() {
 
         <div className="ms-auto flex items-center gap-2">
           <LanguageSwitcher />
-          <Button
-            variant="ghost"
-            className="hidden h-9 rounded-full px-3.5 sm:inline-flex"
-            render={
-              <Link href={session?.user ? accountHref : "/auth/login"} />
-            }
-          >
-            <UserRound className="size-4" aria-hidden />
-            {session?.user ? (session.user.name ?? t("login")) : t("login")}
-          </Button>
+          {session?.user ? (
+            <UserAccountMenu user={session.user} accountHref={accountHref} />
+          ) : (
+            <Button
+              variant="ghost"
+              className="hidden h-9 rounded-full px-3.5 sm:inline-flex"
+              render={<Link href="/auth/login" />}
+            >
+              <UserRound className="size-4" aria-hidden />
+              {t("login")}
+            </Button>
+          )}
           <Button
             variant="accent"
             className="hidden h-9 rounded-full px-4 font-semibold md:inline-flex"

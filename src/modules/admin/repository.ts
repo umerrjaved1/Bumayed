@@ -61,9 +61,9 @@ export async function listUsers(input: {
   if (input.status) where.status = input.status;
   if (input.q) {
     where.OR = [
-      { email: { contains: input.q, mode: "insensitive" } },
+      { email: { contains: input.q } },
       { phone: { contains: input.q } },
-      { profile: { displayName: { contains: input.q, mode: "insensitive" } } },
+      { profile: { displayName: { contains: input.q } } },
     ];
   }
   return prisma.user.findMany({
@@ -148,8 +148,8 @@ export async function listListingsForAdmin(input: {
   if (input.status) where.status = input.status;
   if (input.q) {
     where.OR = [
-      { title: { contains: input.q, mode: "insensitive" } },
-      { slug: { contains: input.q, mode: "insensitive" } },
+      { title: { contains: input.q } },
+      { slug: { contains: input.q } },
     ];
   }
   return prisma.listing.findMany({
